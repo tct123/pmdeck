@@ -1,9 +1,10 @@
-### Before running
 ```
-npm install
-```
+# Prerequisite
+npm install -g electron-forge
 
-### Running
-```
+# Download dependencies
+npm install
+
+# Run
 npm start
 ```
