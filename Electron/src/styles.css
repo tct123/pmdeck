@@ -1,0 +1,43 @@
+@import url('../node_modules/material-design-icons-iconfont/dist/material-design-icons.css');
+@import url('../node_modules/typeface-roboto/index.css');
+
+html {
+    --primary-darker: #1B1725;
+    --primary-dark: #534B62;
+    --primary: #A499B3;
+    --primary-light: #D0BCD5;
+}
+
+#title-bar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
+    align-content: stretch;
+    background-color: darkgray;
+    user-select: none;
+    height: 36px;
+}
+
+#title-bar-btns {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: right;
+    align-items: center;
+}
+
+#title-bar-btns > button {
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0,0,0,0.7)
+}
+
+html, body {
+    margin: 0;
+    height: 100%;
+    font-family: 'Roboto', sans-serif;
+}

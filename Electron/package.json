@@ -48,7 +48,9 @@
   },
   "dependencies": {
     "electron-compile": "^6.4.4",
-    "electron-squirrel-startup": "^1.0.0"
+    "electron-squirrel-startup": "^1.0.0",
+    "material-design-icons-iconfont": "^4.0.3",
+    "typeface-roboto": "0.0.54"
   },
   "devDependencies": {
     "babel-plugin-transform-async-to-generator": "^6.24.1",
