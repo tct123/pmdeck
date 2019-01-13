@@ -6,19 +6,20 @@ html {
     --primary-dark: #534B62;
     --primary: #A499B3;
     --primary-light: #D0BCD5;
+    --text-color: rgba(255,255,255,0.8);
 }
 
-#title-bar {
+/* #title-bar {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: space-between;
     align-items: center;
     align-content: stretch;
-    background-color: darkgray;
+    background-color: var(--primary-dark);
     user-select: none;
     height: 36px;
-}
+} */
 
 #title-bar-btns {
     display: flex;
@@ -26,6 +27,9 @@ html {
     flex-wrap: nowrap;
     justify-content: right;
     align-items: center;
+    position: fixed;
+    top: 0;
+    right: 0;
 }
 
 #title-bar-btns > button {
@@ -33,11 +37,29 @@ html {
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(0,0,0,0.7)
+    background: none;
+    border: 1px solid var(--text-color);
+    border-radius: 5px;
+    color: var(--text-color);
+    outline: none;
 }
 
 html, body {
     margin: 0;
     height: 100%;
     font-family: 'Roboto', sans-serif;
+}
+
+body {
+    background-color: var(--primary-dark);
+    font-family: 'Roboto', sans-serif;
+    -webkit-app-region: drag;
+}
+
+button {
+    -webkit-app-region: no-drag;
+}
+
+div, span, p, h1, h2, h3, h4, h5, h6 {
+    color: var(--text-color);
 }
