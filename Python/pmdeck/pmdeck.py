@@ -2,61 +2,88 @@
 import socket
 import threading
 import base64
-
+import zeroconf
+# from pmdeck import pybonjour
+import atexit
+import sys
+import time
 
 class DeviceManager:
 
     def __init__(self):
-
         self.connected_callback = None
         self.disconnected_callback = None
-
-        threading.Thread(
-            target=self.connector_listener
-        ).start()
+        self.zconf = zeroconf.Zeroconf()
+        self.Decks = {}
+        # {
+            # "ANDROID1":{
+            #     "pass": "123456",
+            #     "connected": "false"
+            # }
+        # }
 
         return
 
     def connector_listener(self):
         bind_ip = '0.0.0.0'
-        bind_port = 23997
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server_socket.bind((bind_ip, 0))
+        self.server_socket.listen(5)  # max backlog of connections
+        local_ip = ""
+        port = self.server_socket.getsockname()[1]
+        try:
+            local_ip = (([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["no IP found"])[0]
+        except:
+            print("exception on getting local ip")
 
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind((bind_ip, bind_port))
-        server.listen(5)  # max backlog of connections
-        print('Listening on {}:{}'.format(bind_ip, bind_port))
+        print('Listening on {}:{}'.format(local_ip, port))
 
-        while True:
-            client_sock, address = server.accept()
-            print('Accepted connection from {}:{}'.format(address[0], address[1]))
-            client_handler = threading.Thread(
-                target=self.deck_listener,
-                args=(client_sock,)
-                # without comma you'd get a... TypeError: handle_client_connection() argument after * must be a sequence, not _socketobject
-            )
-            client_handler.start()
-
-        return
-
-    def deck_listener(self, client_socket):
-
-        deck = Deck(client_socket)
-        self.on_connected(deck)
-        stream = ""
+        self.register_service(local_ip,port)
 
         while True:
             try:
-                data = client_socket.recv(1024)
-                stream = data.decode('utf-8')
-                for cmd in list(filter(None, stream.split(';'))):
-                    spl = cmd.split(',')
-                    deck.on_key_status_change(spl[0], spl[1])
-
+                client_socket, address = self.server_socket.accept()
+                print('Accepted connection from {}:{}'.format(address[0], address[1]))
+                deck = Deck(client_socket, self)
+                #self.on_connected(deck)
+                deck._read()
             except Exception as e:
                 print(e)
-                self.on_disconnected(deck)
                 return
+        return
 
+    def listen_connections(self):
+        self.connector_thread:threading.Thread = threading.Thread(
+            target=self.connector_listener
+        ).start()
+
+        return
+
+    def stop_listening_connections(self):
+        self.server_socket.close()
+        return
+
+    def register_service(self,local_ip,port):
+        print("Registering Service")
+        service_name = local_ip + ":" + str(port) + "._pmdeck._tcp.local."
+
+        desc = {}
+        info = zeroconf.ServiceInfo("_pmdeck._tcp.local.",
+                                    service_name,
+                                    socket.inet_aton(local_ip), port, 0, 0,
+                                    desc, local_ip + ".")
+
+        self.zconf.register_service(info)
+        return
+
+    def unregister_service(self):
+        self.zconf.unregister_all_services()
+        return
+
+    def sync_new_device(self):
+        return
+
+    def stop_syncing(self):
         return
 
     def set_on_connected_callback(self, callback):
@@ -64,7 +91,7 @@ class DeviceManager:
         return
 
     def on_connected(self, deck):
-        deck.reset()
+        # deck.reset()
         if self.connected_callback:
             self.connected_callback(deck)
         return
@@ -81,22 +108,13 @@ class DeviceManager:
 
 class Deck:
 
-    KEY_COUNT = 15
-    KEY_COLS = 5
-    KEY_ROWS = 3
+    def __init__(self, client_socket: socket.socket, deviceManager:DeviceManager):
 
-    KEY_PIXEL_WIDTH = 72
-    KEY_PIXEL_HEIGHT = 72
-    KEY_PIXEL_DEPTH = 3
-    KEY_PIXEL_ORDER = "BGR"
-
-    KEY_IMAGE_SIZE = KEY_PIXEL_WIDTH * KEY_PIXEL_HEIGHT * KEY_PIXEL_DEPTH
-
-    def __init__(self, client_sock: socket.socket):
-
+        self.id = None
         self.key_callback = None
-        self.client_sock: socket.socket = client_sock;
-
+        self.client_socket: socket.socket = client_socket;
+        self.disconnected = False
+        self.deviceManager = deviceManager
         return
 
     def __del__(self):
@@ -104,6 +122,80 @@ class Deck:
 
     def _read(self):
 
+        self.client_socket.settimeout(10)
+
+        def listener():
+            stream = ""
+            while True:
+                try:
+                    data = self.client_socket.recv(1024)
+                    stream = data.decode('utf-8')
+                    print(stream)
+                    for msg in list(filter(None, stream.split(';'))):
+                        spl = msg.split(":")
+                        cmd = spl[0]
+                        if(cmd == "PONG"):
+                            pass
+
+                        elif(cmd == "BTNEVENT"):
+                            args = spl[1].split(",")
+                            self.on_key_status_change(args[0], args[1])
+
+                        elif(cmd == "CONN"):
+                            args = spl[1].split(",")
+                            self.id = args[0]
+                            password = self.deviceManager.Decks[self.id]["pass"]
+                            self.client_socket.send("CONN:{};".format(password).encode("utf-8"))
+
+                        elif(cmd == "CONNACCEPT"):
+                            self.reset()
+                            self.deviceManager.on_connected(self)
+
+                        elif(cmd == "SYNCREQ"):
+                            args = spl[1].split(",")
+                            self.id = args[0]
+                            self.client_socket.send("SYNCTRY:{};".format("123456").encode("utf-8"))
+
+                        elif(cmd == "SYNCACCEPT"):
+                            args = spl[1].split(",")
+                            # self.deviceManager.Decks[self.id]["pass"] = args[0]
+                            # self.deviceManager.Decks[self.id]["synced"] = True
+                            self.client_socket.send("CONN:{};".format(args[0]).encode("utf-8"))
+                            if self.id in self.deviceManager.Decks:
+                                self.deviceManager.Decks[self.id]["pass"] = "123456"
+                            else:
+                                self.deviceManager.Decks[self.id] = {"connected":True, "pass":"123456"}
+
+
+                except Exception as e:
+                    print(e)
+                    self.disconnect()
+                    return
+
+        threading.Thread(target=listener).start()
+
+        def pinger():
+            while True:
+                try:
+                    self.client_socket.send("PING;\n".encode('utf-8'))
+                    time.sleep(3)
+                except Exception as e:
+                    print(e)
+                    self.disconnect()
+                    return
+
+        threading.Thread(target=pinger).start()
+
+        return
+
+    def disconnect(self):
+        if self.disconnected:
+            return
+
+        print("Deck Disconnected")
+        # TODO
+
+        self.disconnected = True
         return
 
     def reset(self):
@@ -120,8 +212,8 @@ class Deck:
         return
 
     def set_key_image_base64(self, key, base64_string):
-        encoded = (str(key) + ";").encode('utf-8') + base64_string + "\n".encode('utf-8')
-        self.client_sock.send(encoded)
+        encoded = ("IMAGE:" + str(key) + ",").encode('utf-8') + base64_string + ";\n".encode('utf-8')
+        self.client_socket.send(encoded)
         return
 
     def set_key_callback(self, callback):
@@ -132,4 +224,5 @@ class Deck:
         if self.key_callback:
             self.key_callback(self, key, status)
         return
+
 

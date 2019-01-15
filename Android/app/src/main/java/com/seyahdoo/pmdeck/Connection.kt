@@ -1,23 +1,22 @@
 package com.seyahdoo.pmdeck
 
+import android.util.Log
 import org.jetbrains.anko.doAsync
 import java.io.*
+import java.lang.Exception
+import java.net.InetAddress
 import java.net.Socket
-import java.util.*
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
-
+import java.net.SocketException
+import kotlin.math.log
 
 class Connection {
 
+    companion object {
+        var openConnections:MutableList<Connection> = mutableListOf()
+    }
+
     var socket: Socket? = null;
     var writer: PrintWriter? = null;
-
-    val ip = "192.168.1.33"
-    val port = 23997
-
-    val lock: Lock = ReentrantLock()
 
     class ShouldContinue(){
         var cont:Boolean = true;
@@ -25,24 +24,27 @@ class Connection {
 
     private var lastReaderContinue: ShouldContinue? = null;
 
-    fun openConnection() {
-
-        doAsync {
+    fun openConnection(ip:InetAddress, port:Int, onSuccess:()->Unit) {
+        doThreaded {
             try {
                 socket = Socket(ip, port)
+                socket?.soTimeout = 10000
                 writer = PrintWriter(socket!!.getOutputStream())
                 val inputReader = BufferedReader(InputStreamReader(socket?.getInputStream()));
                 reader(ShouldContinue(), inputReader)
+                openConnections.add(this)
+                onSuccess()
             } catch (e: IOException) {
-                e.printStackTrace()
+                Log.e("Connection", e.toString());
             }
-
         }
-
     }
 
     fun closeConnection(){
-        doAsync {
+        doThreaded {
+            Log.e("Connection","Closing connection")
+            openConnections.remove(this);
+
             lastReaderContinue?.cont = false;
             writer?.close()
             socket?.close()
@@ -57,33 +59,34 @@ class Connection {
         fun onData(s: String)
     }
 
-    var OnDataCallback: ((String)->Unit)? = null
+    var OnDataCallback: ((Connection,String)->Unit)? = null
 
-    fun setOnDataListener(listener: (String) -> Unit){
+    fun setOnDataListener(listener: (Connection,String) -> Unit){
         OnDataCallback = listener;
     }
 
     fun reader(shouldContinue: ShouldContinue, bufreader: BufferedReader) {
         lastReaderContinue = shouldContinue
-        doAsync {
+        doThreaded {
             while (shouldContinue.cont) {
-                val input: String = bufreader.readLine() ?: continue
-                OnDataCallback?.invoke(input)
+                try {
+                    val input: String = bufreader.readLine() ?: continue
+                    Log.e("Message Received",input)
+                    OnDataCallback?.invoke(this@Connection,input)
+                } catch (e:Exception){
+                    this.closeConnection()
+                }
             }
         }
     }
 
-    val queue: Queue<String> = ArrayDeque<String>()
-
     fun sendMessage(message:String){
-        queue.add(message)
-
-        doAsync {
-            lock.withLock {
-                writer?.write(queue.remove());
-                writer?.flush()
-                null
-            }
+        Log.e("Message Sent",message)
+        try{
+            writer?.write(message)
+            writer?.flush()
+        }catch (e: Exception){
+            closeConnection()
         }
 
     }
