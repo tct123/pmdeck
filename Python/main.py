@@ -1,3 +1,4 @@
+from Action.Actions.callibrate_foot_action import CallibrateFootAction
 from pmdeck import pmdeck
 from threading import Event
 
@@ -30,8 +31,11 @@ def key_callback(deck, key, status):
 def on_connected_callback(deck):
     deck.set_key_callback(key_callback)
 
+    deck.reset()
+
     root_folder = Folder(deck)
     root_folder.set_action(12, MicAction(deck))
+    root_folder.set_action(14, CallibrateFootAction(deck))
     # for i in range(1,15,2):
     #     root_folder.set_action(i, TestAction(deck))
     root_folder.open()
@@ -62,29 +66,30 @@ if __name__ == "__main__":
 
     manager.listen_connections()
 
-    state = False
+    Event().wait()
 
-
-    def on_clicked(icon, item):
-        global state
-        print("Blah")
-        state = not state
-
-
+    # state = False
+    #
+    # def on_clicked(icon, item):
+    #     global state
+    #     print("Blah")
+    #     state = not state
+    #
+    #
     # Update the state in `on_clicked` and return the new state in
     # a `checked` callable
-    Icon('test', Image.new('RGBA', (128,128), (255,255,255,255)), menu=Menu(
-        MenuItem(
-            'Sync New',
-            on_clicked),
-        MenuItem(
-            'Restart',
-            on_clicked,
-            default=True),
-        MenuItem(
-            'Quit',
-            on_clicked,
-            checked=lambda item: state) )
-        ).run()
+    # Icon('test', Image.new('RGBA', (128,128), (255,255,255,255)), menu=Menu(
+    #     MenuItem(
+    #         'Sync New',
+    #         on_clicked),
+    #     MenuItem(
+    #         'Restart',
+    #         on_clicked,
+    #         default=True),
+    #     MenuItem(
+    #         'Quit',
+    #         on_clicked,
+    #         checked=lambda item: state) )
+    #     ).run()
 
 

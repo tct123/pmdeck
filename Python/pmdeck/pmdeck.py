@@ -14,13 +14,12 @@ class DeviceManager:
         self.connected_callback = None
         self.disconnected_callback = None
         self.zconf = zeroconf.Zeroconf()
-        self.Decks = {}
-        # {
-            # "ANDROID1":{
-            #     "pass": "123456",
-            #     "connected": "false"
-            # }
-        # }
+        self.Decks = {
+            "ANDROID1": {
+                "pass": "123456",
+                "connected": "false"
+            }
+        }
 
         return
 
@@ -125,12 +124,12 @@ class Deck:
         self.client_socket.settimeout(10)
 
         def listener():
-            stream = ""
             while True:
                 try:
                     data = self.client_socket.recv(1024)
                     stream = data.decode('utf-8')
-                    print(stream)
+                    if (len(stream)> 1):
+                        print(stream)
                     for msg in list(filter(None, stream.split(';'))):
                         spl = msg.split(":")
                         cmd = spl[0]
@@ -145,7 +144,8 @@ class Deck:
                             args = spl[1].split(",")
                             self.id = args[0]
                             password = self.deviceManager.Decks[self.id]["pass"]
-                            self.client_socket.send("CONN:{};".format(password).encode("utf-8"))
+                            print(password)
+                            self.client_socket.send("CONN:{};".format("123456").encode("utf-8"))
 
                         elif(cmd == "CONNACCEPT"):
                             self.reset()
@@ -164,11 +164,11 @@ class Deck:
                             if self.id in self.deviceManager.Decks:
                                 self.deviceManager.Decks[self.id]["pass"] = "123456"
                             else:
-                                self.deviceManager.Decks[self.id] = {"connected":True, "pass":"123456"}
+                                self.deviceManager.Decks[self.id] = {"connected": True, "pass":"123456"}
 
 
                 except Exception as e:
-                    print(e)
+                    # print(e)
                     self.disconnect()
                     return
 
@@ -186,7 +186,10 @@ class Deck:
 
         threading.Thread(target=pinger).start()
 
+        self.deviceManager.on_connected(self)
         return
+
+
 
     def disconnect(self):
         if self.disconnected:

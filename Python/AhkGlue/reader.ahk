@@ -1,5 +1,5 @@
 
-pipe_name := "/pmdeck/ahk/button1"
+pipe_name := "\\.\pipe\pmdeck\button1"
 
 While !DllCall("WaitNamedPipe", "Str", pipe_name, "UInt", 0xffffffff)
     Sleep, 500

@@ -10,11 +10,29 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 pipe_name := "/pmdeck/ahk/button1"
 
-While !DllCall("WaitNamedPipe", "Str", pipe_name, "UInt", 0xffffffff)
-    Sleep, 500
+SetTimer, timer_DetectChange, 0
+return
 
-Loop, read, %pipe_name%
- MSgBox, %A_LoopReadLine%
+HandleExit:
+	return
+ExitApp
+
+listener:
+    loop,
+    {
+
+        While !DllCall("WaitNamedPipe", "Str", pipe_name, "UInt", 0xffffffff)
+            Sleep, 500
+
+        Loop, read, %pipe_name%
+            MSgBox, %A_LoopReadLine%
+
+    }
+
+return
+
+
+
 
 
 ptr := A_PtrSize ? "Ptr" : "UInt"
