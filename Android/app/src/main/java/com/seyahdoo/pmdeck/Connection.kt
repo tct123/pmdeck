@@ -1,5 +1,6 @@
 package com.seyahdoo.pmdeck
 
+import android.os.Debug
 import android.util.Log
 import org.jetbrains.anko.doAsync
 import java.io.*
@@ -86,6 +87,7 @@ class Connection {
             writer?.write(message)
             writer?.flush()
         }catch (e: Exception){
+            Log.e("SEVERE",e.toString())
             closeConnection()
         }
 

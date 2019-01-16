@@ -23,8 +23,8 @@ class MainActivity : AppCompatActivity() {
     var SyncTrying:Boolean = false
     var SyncPass:String = "123456"
     var SyncCon:Connection? = null
-    var PassAccepted:Boolean = false
-    var Pass:String = "0"
+    var PassAccepted:Boolean = true
+    var Pass:String = "123456"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,15 +129,17 @@ class MainActivity : AppCompatActivity() {
         buttonList.forEachIndexed{ index, element ->
             element.setOnTouchListener { _:View, e:MotionEvent ->
                 if (!Synced) return@setOnTouchListener true
-                when (e.action){
-                    MotionEvent.ACTION_DOWN -> {
-                        Connection.openConnections.forEach {
-                            it.sendMessage("BTNEVENT:$index,0;")
+                doThreaded {
+                    when (e.action){
+                        MotionEvent.ACTION_DOWN -> {
+                            Connection.openConnections.forEach {
+                                it.sendMessage("BTNEVENT:$index,0;")
+                            }
                         }
-                    }
-                    MotionEvent.ACTION_UP -> {
-                        Connection.openConnections.forEach {
-                            it.sendMessage("BTNEVENT:$index,1;")
+                        MotionEvent.ACTION_UP -> {
+                            Connection.openConnections.forEach {
+                                it.sendMessage("BTNEVENT:$index,1;")
+                            }
                         }
                     }
                 }
@@ -154,7 +156,7 @@ class MainActivity : AppCompatActivity() {
                 con.setOnDataListener(controlListener)
                 con.openConnection(it.inetAddresses[0],it.port) {
                     if(Synced){
-                        con.sendMessage("CONN:${getUID()};")
+                        //con.sendMessage("CONN:${getUID()};")
                     }else{
                         con.sendMessage("SYNCREQ:${getUID()};")
                     }
