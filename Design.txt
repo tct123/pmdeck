@@ -1,0 +1,4 @@
+Server will keep track of all clients adresses
+Server will discover clients
+Clients will register itselves
+
