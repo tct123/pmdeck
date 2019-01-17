@@ -1,4 +1,4 @@
-
+import json
 import socket
 import threading
 import base64
@@ -18,12 +18,7 @@ class DeviceManager:
         self.disconnected_callback = None
         self.zconf = zeroconf.Zeroconf()
         self.Decks = {}
-            # "ANDROID1": {
-            #     "pass": "123456",
-            #     "connected": "false"
-            # }
-        # }
-
+        self.load_deck_info()
         return
 
     def connector_listener(self):
@@ -101,6 +96,22 @@ class DeviceManager:
             self.disconnected_callback(deck)
         return
 
+    def save_deck_info(self):
+        try:
+            with open('decks.json', 'w') as outfile:
+                json.dump(self.Decks, outfile)
+        except:
+            pass
+        return
+
+    def load_deck_info(self):
+        try:
+            with open('decks.json') as json_file:
+                self.Decks = json.load(json_file)
+        except:
+            pass
+        return
+
 
 class Deck:
 
@@ -157,13 +168,10 @@ class Deck:
 
                         elif(cmd == "SYNCACCEPT"):
                             args = spl[1].split(",")
-                            # self.deviceManager.Decks[self.id]["pass"] = args[0]
-                            # self.deviceManager.Decks[self.id]["synced"] = True
-                            self.client_socket.send("CONN:{},{};".format(get_uid(), args[0]).encode("utf-8"))
-                            if self.id in self.deviceManager.Decks:
-                                self.deviceManager.Decks[self.id]["pass"] = "123456"
-                            else:
-                                self.deviceManager.Decks[self.id] = {"connected": True, "pass": "123456"}
+                            password = args[0]
+                            self.deviceManager.Decks[self.id] = {"connected": True, "pass": password}
+                            self.deviceManager.save_deck_info()
+                            self.client_socket.send("CONN:{},{};".format(get_uid(), password).encode("utf-8"))
 
                 except Exception as e:
                     # print(e)

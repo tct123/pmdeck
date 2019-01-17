@@ -202,8 +202,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP){
-            RebirthHelper.doRestart(this)
+            Synced = false
+            SyncedID = ""
+            SyncPass = "0"
+            SyncTrying = false
 
+            with (sharedPref?.edit()) {
+                this?.putBoolean("Synced", Synced)
+                this?.putString("SyncedID", SyncedID)
+                this?.putString("Pass", Pass)
+                this?.commit()
+            }
+
+            RebirthHelper.doRestart(this)
         }else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
             //swap = !swap;
             //setSystemUIEnabled(swap);

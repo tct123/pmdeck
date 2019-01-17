@@ -1,7 +1,1 @@
-
-[
-  {
-    "id":"qwerrrw",
-    "sync_pass":"asdadss"
-  }
-]
+{"ANDROID1": {"connected": true, "pass": "123456"}}
