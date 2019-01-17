@@ -1,0 +1,24 @@
+Deck may go to sleep
+Deck wifi connection may disconnect
+Deck may change ip (disconnect and connect via different ip)
+Server may change ip (disconnect and connect via different ip)
+Server may disconnect
+
+solution: each device will have a dynamic database of device_id to device_ip,device_port
+
+
+if a device is synced to certain device_id, on on_hello(device_id) function, it will connect
+
+if a device is not synced, on on_hello(device_id) it will try to sync
+
+
+on change self ip or port re announce myself to network
+
+
+for each devices found in network, send
+->"HELLO:device_id, connection_ip, connection_port;"
+(no response) (close connection)
+
+if "Hello:synced_device_id, xx, xx" received
+connect to xx, xx
+

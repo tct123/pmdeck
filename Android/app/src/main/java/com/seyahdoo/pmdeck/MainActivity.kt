@@ -16,6 +16,9 @@ import android.widget.Toast
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarTheme
 import kotlinx.android.synthetic.main.activity_main.*
+import java.net.ServerSocket
+import java.util.*
+import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
 
@@ -25,6 +28,18 @@ class MainActivity : AppCompatActivity() {
     var SyncCon:Connection? = null
     var PassAccepted:Boolean = true
     var Pass:String = "123456"
+
+    var connectionDatabase = HashMap<String, IpPort>()
+
+    class IpPort{
+        constructor(ip:String,port:Int){
+            this.ip = ip
+            this.port = port
+        }
+
+        var ip:String = ""
+        var port:Int = 0
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -163,6 +178,47 @@ class MainActivity : AppCompatActivity() {
                 }
 
             }
+        }
+
+        doThreaded {
+            val d = NetworkDiscovery(this@MainActivity)
+            val server = ServerSocket(0)
+            d.startServer(server.localPort)
+            while (true){
+                val client = server.accept()
+                doThreaded {
+                    val reader = Scanner(client.getInputStream())
+                    try {
+                        val s = reader.nextLine()
+                        val lines = s.split(";")
+                        for (l in lines){
+                            val spl = l.split(":")
+                            val cmd = spl[0]
+                            val args = spl[1].split(",")
+
+                            if (cmd == "HELLO"){
+                                connectionDatabase[args[0]] = IpPort(args[1], args[2].toInt())
+                            }
+
+                        }
+                    }catch (e:java.lang.Exception){
+
+                    }finally {
+                        //Might be an issue
+                        client.close()
+                    }
+
+                }
+
+
+
+            }
+
+
+
+
+
+
         }
 
     }
