@@ -1,10 +1,13 @@
 package com.seyahdoo.pmdeck
 
 import android.annotation.SuppressLint
+import android.content.Context
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
+import android.preference.Preference
 import android.support.v7.app.AppCompatActivity
 import android.util.Base64
 import android.util.Log
@@ -19,24 +22,29 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    var Synced:Boolean = true
-    var SyncedID:String = "3cnTXQbjVxkHACXNQZAxa1hMuJf"
+    var Synced:Boolean = false
+    var SyncedID:String = ""
+    var Pass:String = ""
+
     var SyncTrying:Boolean = false
-    var SyncPass:String = "123456"
+    var SyncPass:String = ""
     var SyncCon:Connection? = null
     var PassAccepted:Boolean = false
-    var Pass:String = "123456"
 
     var c:Connection? = null
+
+    var sharedPref:SharedPreferences? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        //val sharedPref = this?.getPreferences(Context.MODE_PRIVATE)
-        //Synced = sharedPref.getBoolean("Synced",false)
-        //Pass = sharedPref.getString("Pass","0")
+        sharedPref = this?.getPreferences(Context.MODE_PRIVATE)
+
+        Synced = sharedPref?.getBoolean("Synced", false) ?: false
+        SyncedID = sharedPref?.getString("SyncedID", "") ?: ""
+        Pass = sharedPref?.getString("Pass", "") ?: ""
 
         val buttonList: List<ImageButton> = listOf(btn0,btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10,btn11,btn12,btn13,btn14);
 
@@ -87,7 +95,7 @@ class MainActivity : AppCompatActivity() {
                         if (SyncTrying) return
                         try {
                             val args = spl[1].split(",")
-                            SyncPass = args[0]
+                            SyncPass = args[1]
                             SyncTrying = true
                             SyncCon = con
                             //Open Sync UI
@@ -105,8 +113,16 @@ class MainActivity : AppCompatActivity() {
                                     if (!SyncTrying) return@onPositive
                                     SyncCon?.sendMessage("SYNCACCEPT:${SyncPass};")
                                     Synced = true
-                                    SyncTrying = false
+                                    SyncedID = args[0]
                                     Pass = SyncPass
+                                    with (sharedPref?.edit()) {
+                                        this?.putBoolean("Synced", Synced)
+                                        this?.putString("SyncedID", SyncedID)
+                                        this?.putString("Pass", Pass)
+                                        this?.commit()
+                                    }
+
+                                    SyncTrying = false
                                     SyncPass = "0"
                                     c = con
                                     it.dismiss()
@@ -120,7 +136,6 @@ class MainActivity : AppCompatActivity() {
                                     it.dismiss()
                                 }
                                 .show();
-
                         }catch (e:Exception){
                             e.printStackTrace()
                             Log.e("Network Listener","Closing Connection, Stuff Happened")
@@ -145,22 +160,21 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                 }
-
                 return@setOnTouchListener true
             }
         }
 
-
         doThreaded {
             val d = NetworkDiscovery(this)
-            if(Synced){
-                d.findServers("_pmdeck._tcp.local."){
-                    val con = Connection()
-                    con.OnDataCallback = controlListener
-                    con.openConnection(it.inetAddresses[0],it.port){
+            d.findServers("_pmdeck._tcp.local."){
+                val con = Connection()
+                con.OnDataCallback = controlListener
+                con.openConnection(it.inetAddresses[0],it.port){
+                    if(Synced){
                         con.sendMessage("CONN:${getUID()};")
+                    }else{
+                        con.sendMessage("SYNCREQ:${getUID()};")
                     }
-
                 }
             }
         }
@@ -201,14 +215,21 @@ class MainActivity : AppCompatActivity() {
 
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-            Toast.makeText(getApplicationContext(),"Disconecting and UnSyncing",Toast.LENGTH_SHORT).show();
-//            Connection.openConnections.forEach {
-//                it.closeConnection()
-//            }
+
             Synced = false
-            SyncTrying = false
+            SyncedID = ""
             SyncPass = "0"
-            c?.closeConnection()
+            with (sharedPref?.edit()) {
+                this?.putBoolean("Synced", Synced)
+                this?.putString("SyncedID", SyncedID)
+                this?.putString("Pass", Pass)
+                this?.commit()
+            }
+
+
+            SyncTrying = false
+            RebirthHelper.doRestart(this)
+            //c?.closeConnection()
             return true
         }
         return super.onKeyLongPress(keyCode, event)
