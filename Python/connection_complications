@@ -22,3 +22,27 @@ for each devices found in network, send
 if "Hello:synced_device_id, xx, xx" received
 connect to xx, xx
 
+
+
+-NO
+
+//Synced device connection
+service id: deviceID.pmdeck.tcp.local
+name: ip:port.pmdeck.tcp.local
+
+//On Synced, deck will only listen on syncedDeviceID.pmdeck.tcp.local
+//And just connect
+
+
+//Syncing
+service id: sync.pmdeck.tcp.local
+name ip:port.sync.pmdeck.tcp.local
+
+//if Deck not Synced it will discover sync.pmdeck.tcp.local
+//and do syncing ritual
+
+
+Server will always register serverID.pmdeck.tcp.local
+if Server wants a new Deck it will register sync.pmdeck.tcp.local
+
+

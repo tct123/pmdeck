@@ -13,7 +13,7 @@ A device connects to server, Sends its UniqueID
 -> CONN:UID;
 UID was saved on server,
 Server connects to it using password
--> CONN:PASS;
+-> CONN:SUID,PASS;
 
 
 Server did not connected to all its peers, so server's listener is on

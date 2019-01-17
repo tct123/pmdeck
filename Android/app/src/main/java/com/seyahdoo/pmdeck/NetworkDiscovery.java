@@ -23,7 +23,7 @@ import javax.jmdns.ServiceListener;
 public class NetworkDiscovery {
     private final String DEBUG_TAG = NetworkDiscovery.class.getName();
     private final String TYPE = "_pmdeck._tcp.local.";
-    private final String SERVICE_NAME = "LocalCommunication";
+//    private final String SERVICE_NAME = "LocalCommunication";
 
     private Context mContext;
     private JmDNS mJmDNS;
@@ -51,18 +51,18 @@ public class NetworkDiscovery {
         }
     }
 
-    public void startServer(int port) {
-        try {
-            wifiLock();
-            mServiceInfo = ServiceInfo.create(TYPE, SERVICE_NAME, port, SERVICE_NAME);
-            mJmDNS.registerService(mServiceInfo);
-        } catch (IOException e) {
-            Log.d(DEBUG_TAG, "Error in JmDNS initialization: " + e);
-        }
-    }
+//    public void startServer(int port) {
+//        try {
+//            wifiLock();
+//            mServiceInfo = ServiceInfo.create(TYPE, SERVICE_NAME, port, SERVICE_NAME);
+//            mJmDNS.registerService(mServiceInfo);
+//        } catch (IOException e) {
+//            Log.d(DEBUG_TAG, "Error in JmDNS initialization: " + e);
+//        }
+//    }
 
-    public void findServers(final OnFoundListener listener) {
-        mJmDNS.addServiceListener(TYPE, mServiceListener = new ServiceListener() {
+    public void findServers(String serviceType, final OnFoundListener listener) {
+        mJmDNS.addServiceListener(serviceType, mServiceListener = new ServiceListener() {
             @Override
             public void serviceAdded(ServiceEvent serviceEvent) {
                 Log.d("Service","Added");
@@ -85,13 +85,13 @@ public class NetworkDiscovery {
     }
 
     public void reset() {
-        if (mJmDNS != null) {
-            if (mServiceListener != null) {
-                mJmDNS.removeServiceListener(TYPE, mServiceListener);
-                mServiceListener = null;
-            }
-            mJmDNS.unregisterAllServices();
-        }
+//        if (mJmDNS != null) {
+//            if (mServiceListener != null) {
+//                mJmDNS.removeServiceListener(TYPE, mServiceListener);
+//                mServiceListener = null;
+//            }
+//            mJmDNS.unregisterAllServices();
+//        }
         if (mMulticastLock != null && mMulticastLock.isHeld()) {
             mMulticastLock.release();
         }
@@ -99,7 +99,7 @@ public class NetworkDiscovery {
 
     private void wifiLock() {
         WifiManager wifiManager = (WifiManager) mContext.getSystemService(android.content.Context.WIFI_SERVICE);
-        mMulticastLock = wifiManager.createMulticastLock(SERVICE_NAME);
+        mMulticastLock = wifiManager.createMulticastLock(TYPE);
         mMulticastLock.setReferenceCounted(true);
         mMulticastLock.acquire();
     }

@@ -12,29 +12,23 @@ import kotlin.math.log
 
 class Connection {
 
-    companion object {
-        var openConnections:MutableList<Connection> = mutableListOf()
-    }
+//    companion object {
+//        var openConnections:MutableList<Connection> = mutableListOf()
+//    }
 
     var socket: Socket? = null;
     var writer: PrintWriter? = null;
 
-    class ShouldContinue(){
-        var cont:Boolean = true;
-    }
 
-    private var lastReaderContinue: ShouldContinue? = null;
-
-    fun openConnection(ip:InetAddress, port:Int, onSuccess:()->Unit) {
+    fun openConnection(ip:InetAddress, port:Int, onSuccess: (()->Unit)? = null) {
         doThreaded {
             try {
                 socket = Socket(ip, port)
-                socket?.soTimeout = 10000
+//                socket?.soTimeout = 10000
                 writer = PrintWriter(socket!!.getOutputStream())
-                val inputReader = BufferedReader(InputStreamReader(socket?.getInputStream()));
-                reader(ShouldContinue(), inputReader)
-                openConnections.add(this)
-                onSuccess()
+                reader(BufferedReader(InputStreamReader(socket?.getInputStream())))
+//                openConnections.add(this)
+                onSuccess?.invoke()
             } catch (e: IOException) {
                 Log.e("Connection", e.toString());
             }
@@ -44,13 +38,13 @@ class Connection {
     fun closeConnection(){
         doThreaded {
             Log.e("Connection","Closing connection")
-            openConnections.remove(this);
+//            openConnections.remove(this);
 
-            lastReaderContinue?.cont = false;
+            readThread?.interrupt()
             writer?.close()
             socket?.close()
 
-            lastReaderContinue = null;
+            readThread = null
             writer = null
             socket = null
         }
@@ -66,16 +60,18 @@ class Connection {
         OnDataCallback = listener;
     }
 
-    fun reader(shouldContinue: ShouldContinue, bufreader: BufferedReader) {
-        lastReaderContinue = shouldContinue
-        doThreaded {
-            while (shouldContinue.cont) {
+    var readThread:Thread? = null;
+
+    private fun reader(bufreader: BufferedReader) {
+        readThread = doThreaded {
+            while (true) {
                 try {
                     val input: String = bufreader.readLine() ?: continue
-                    Log.e("Message Received",input)
-                    OnDataCallback?.invoke(this@Connection,input)
-                } catch (e:Exception){
+                    Log.e("Message Received", input)
+                    OnDataCallback?.invoke(this@Connection, input)
+                } catch (e: Exception) {
                     this.closeConnection()
+                    return@doThreaded
                 }
             }
         }
@@ -90,7 +86,6 @@ class Connection {
             Log.e("SEVERE",e.toString())
             closeConnection()
         }
-
     }
 
 }

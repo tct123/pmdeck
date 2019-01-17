@@ -1,7 +1,9 @@
 package com.seyahdoo.pmdeck
 
-fun <T> T.doThreaded (func: ()->Unit) {
-    Thread(Runnable {
+fun <T> T.doThreaded (func: ()->Unit): Thread {
+    val t:Thread = Thread(Runnable {
         func()
-    }).start()
+    })
+    t.start()
+    return t
 }

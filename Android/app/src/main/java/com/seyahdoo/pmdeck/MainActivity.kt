@@ -16,30 +16,19 @@ import android.widget.Toast
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarTheme
 import kotlinx.android.synthetic.main.activity_main.*
-import java.net.ServerSocket
-import java.util.*
-import kotlin.collections.HashMap
 
 class MainActivity : AppCompatActivity() {
 
     var Synced:Boolean = true
+    var SyncedID:String = "3cnTXQbjVxkHACXNQZAxa1hMuJf"
     var SyncTrying:Boolean = false
     var SyncPass:String = "123456"
     var SyncCon:Connection? = null
-    var PassAccepted:Boolean = true
+    var PassAccepted:Boolean = false
     var Pass:String = "123456"
 
-    var connectionDatabase = HashMap<String, IpPort>()
+    var c:Connection? = null
 
-    class IpPort{
-        constructor(ip:String,port:Int){
-            this.ip = ip
-            this.port = port
-        }
-
-        var ip:String = ""
-        var port:Int = 0
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,11 +40,11 @@ class MainActivity : AppCompatActivity() {
 
         val buttonList: List<ImageButton> = listOf(btn0,btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10,btn11,btn12,btn13,btn14);
 
-        val controlListener = @SuppressLint("Range")
-        fun (con:Connection, s:String){
+        val controlListener = fun (con:Connection, s:String){
             for (msg in s.split(";")){
                 val spl = msg.split(":");
                 val cmd = spl[0]
+                @SuppressLint("Range")
                 when (cmd){
                     "IMAGE" -> {
                         if (!Synced || (Synced && !PassAccepted)){
@@ -81,9 +70,10 @@ class MainActivity : AppCompatActivity() {
                     "CONN" -> {
                         try {
                             val args = spl[1].split(",")
-                            if (args[0] == Pass){
+                            if (args[0] == SyncedID && args[1] == Pass){
                                 PassAccepted = true
                                 con.sendMessage("CONNACCEPT;")
+                                c = con;
                             }
                         }catch (e:Exception){
                             con.closeConnection()
@@ -101,7 +91,6 @@ class MainActivity : AppCompatActivity() {
                             SyncTrying = true
                             SyncCon = con
                             //Open Sync UI
-
                             CafeBar.builder(this)
                                 .theme(CafeBarTheme.LIGHT)
                                 .floating(true)
@@ -119,6 +108,7 @@ class MainActivity : AppCompatActivity() {
                                     SyncTrying = false
                                     Pass = SyncPass
                                     SyncPass = "0"
+                                    c = con
                                     it.dismiss()
                                 }
                                 .onNegative {
@@ -141,20 +131,17 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+
         buttonList.forEachIndexed{ index, element ->
             element.setOnTouchListener { _:View, e:MotionEvent ->
                 if (!Synced) return@setOnTouchListener true
                 doThreaded {
                     when (e.action){
                         MotionEvent.ACTION_DOWN -> {
-                            Connection.openConnections.forEach {
-                                it.sendMessage("BTNEVENT:$index,0;")
-                            }
+                            c?.sendMessage("BTNEVENT:$index,0;")
                         }
                         MotionEvent.ACTION_UP -> {
-                            Connection.openConnections.forEach {
-                                it.sendMessage("BTNEVENT:$index,1;")
-                            }
+                            c?.sendMessage("BTNEVENT:$index,1;")
                         }
                     }
                 }
@@ -163,63 +150,37 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        doThreaded {
-            val d = NetworkDiscovery(this@MainActivity)
-            d.findServers {
-                Log.e("Discovery", "Found ${it.inetAddresses}:${it.port}")
-                val con = Connection()
-                con.setOnDataListener(controlListener)
-                con.openConnection(it.inetAddresses[0],it.port) {
-                    if(Synced){
-                        //con.sendMessage("CONN:${getUID()};")
-                    }else{
-                        con.sendMessage("SYNCREQ:${getUID()};")
-                    }
-                }
-
-            }
-        }
 
         doThreaded {
-            val d = NetworkDiscovery(this@MainActivity)
-            val server = ServerSocket(0)
-            d.startServer(server.localPort)
-            while (true){
-                val client = server.accept()
-                doThreaded {
-                    val reader = Scanner(client.getInputStream())
-                    try {
-                        val s = reader.nextLine()
-                        val lines = s.split(";")
-                        for (l in lines){
-                            val spl = l.split(":")
-                            val cmd = spl[0]
-                            val args = spl[1].split(",")
-
-                            if (cmd == "HELLO"){
-                                connectionDatabase[args[0]] = IpPort(args[1], args[2].toInt())
-                            }
-
-                        }
-                    }catch (e:java.lang.Exception){
-
-                    }finally {
-                        //Might be an issue
-                        client.close()
+            val d = NetworkDiscovery(this)
+            if(Synced){
+                d.findServers("_pmdeck._tcp.local."){
+                    val con = Connection()
+                    con.OnDataCallback = controlListener
+                    con.openConnection(it.inetAddresses[0],it.port){
+                        con.sendMessage("CONN:${getUID()};")
                     }
 
                 }
-
-
-
             }
-
-
-
-
-
-
         }
+
+//        doThreaded {
+//            val d = NetworkDiscovery(this@MainActivity)
+//            d.findServers("_pmdeck._tcp.local.") {
+//                Log.e("Discovery", "Found ${it.inetAddresses}:${it.port}")
+//                val con = Connection()
+//                con.setOnDataListener(controlListener)
+//                con.openConnection(it.inetAddresses[0],it.port) {
+//                    if(Synced){
+//                        //con.sendMessage("CONN:${getUID()};")
+//                    }else{
+//                        con.sendMessage("SYNCREQ:${getUID()};")
+//                    }
+//                }
+//
+//            }
+//        }
 
     }
 
@@ -241,12 +202,13 @@ class MainActivity : AppCompatActivity() {
     override fun onKeyLongPress(keyCode: Int, event: KeyEvent): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
             Toast.makeText(getApplicationContext(),"Disconecting and UnSyncing",Toast.LENGTH_SHORT).show();
-            Connection.openConnections.forEach {
-                it.closeConnection()
-            }
+//            Connection.openConnections.forEach {
+//                it.closeConnection()
+//            }
             Synced = false
             SyncTrying = false
             SyncPass = "0"
+            c?.closeConnection()
             return true
         }
         return super.onKeyLongPress(keyCode, event)

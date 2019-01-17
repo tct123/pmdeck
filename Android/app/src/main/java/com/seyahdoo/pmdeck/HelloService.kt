@@ -27,7 +27,6 @@ class HelloService{
     private var mMulticastLock: WifiManager.MulticastLock? = null
 
     var localIp:InetAddress? = null
-    var connectionDatabase = HashMap<String, MainActivity.IpPort>()
 
 
     constructor(context: Context){
@@ -104,7 +103,7 @@ class HelloService{
                             val args = spl[1].split(",")
 
                             if (cmd == "HELLO"){
-                                connectionDatabase[args[0]] = MainActivity.IpPort(args[1], args[2].toInt())
+//                                connectionDatabase[args[0]] = MainActivity.IpPort(args[1], args[2].toInt())
                             }
 
                         }

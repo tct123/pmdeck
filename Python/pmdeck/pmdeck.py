@@ -8,6 +8,9 @@ import atexit
 import sys
 import time
 
+from pmdeck.get_uid import get_uid
+
+
 class DeviceManager:
 
     def __init__(self):
@@ -37,15 +40,23 @@ class DeviceManager:
 
         print('Listening on {}:{}'.format(local_ip, port))
 
-        self.register_service(local_ip,port)
+        print("Registering Service")
+        service_name = "{}:{}._pmdeck._tcp.local.".format(local_ip, str(port))
+        service_type = "_pmdeck._tcp.local."
+        desc = {}
+        info = zeroconf.ServiceInfo(service_type,
+                                    service_name,
+                                    socket.inet_aton(local_ip), port, 0, 0,
+                                    desc, local_ip + ".")
+
+        self.zconf.register_service(info)
 
         while True:
             try:
                 client_socket, address = self.server_socket.accept()
                 print('Accepted connection from {}:{}'.format(address[0], address[1]))
                 deck = Deck(client_socket, self)
-                #self.on_connected(deck)
-                deck._read()
+                deck.read()
             except Exception as e:
                 print(e)
                 return
@@ -55,24 +66,10 @@ class DeviceManager:
         self.connector_thread:threading.Thread = threading.Thread(
             target=self.connector_listener
         ).start()
-
         return
 
     def stop_listening_connections(self):
         self.server_socket.close()
-        return
-
-    def register_service(self,local_ip,port):
-        print("Registering Service")
-        service_name = local_ip + ":" + str(port) + "._pmdeck._tcp.local."
-
-        desc = {}
-        info = zeroconf.ServiceInfo("_pmdeck._tcp.local.",
-                                    service_name,
-                                    socket.inet_aton(local_ip), port, 0, 0,
-                                    desc, local_ip + ".")
-
-        self.zconf.register_service(info)
         return
 
     def unregister_service(self):
@@ -119,9 +116,9 @@ class Deck:
     def __del__(self):
         return
 
-    def _read(self):
+    def read(self):
 
-        self.client_socket.settimeout(10)
+        # self.client_socket.settimeout(10)
 
         def listener():
             while True:
@@ -144,8 +141,7 @@ class Deck:
                             args = spl[1].split(",")
                             self.id = args[0]
                             password = self.deviceManager.Decks[self.id]["pass"]
-                            print(password)
-                            self.client_socket.send("CONN:{};".format("123456").encode("utf-8"))
+                            self.client_socket.send("CONN:{},{};".format(get_uid(), password).encode("utf-8"))
 
                         elif(cmd == "CONNACCEPT"):
                             self.reset()

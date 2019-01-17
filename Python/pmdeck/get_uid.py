@@ -22,3 +22,6 @@ def get_uid():
 
 def get_short_uid():
     return get_uid()[:9]
+
+
+print(get_uid())
