@@ -17,7 +17,9 @@ class DeviceManager:
         self.connected_callback = None
         self.disconnected_callback = None
         self.zconf = zeroconf.Zeroconf()
-        self.Decks = {}
+        self.Decks = {
+            "ANDRIOD1": {"pass": "123456"}
+        }
         self.load_deck_info()
         return
 
@@ -192,7 +194,7 @@ class Deck:
 
         threading.Thread(target=pinger).start()
 
-        # self.deviceManager.on_connected(self)
+        self.deviceManager.on_connected(self)
         return
 
 
