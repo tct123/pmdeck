@@ -2,7 +2,7 @@
 
 class Action:
 
-    def __init__(self,deck):
+    def __init__(self, deck):
         self.image_path = "Assets/empty.png"
         self.is_visible = False
         self.current_space = 0

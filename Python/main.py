@@ -1,4 +1,5 @@
 from Action.Actions.callibrate_foot_action import CallibrateFootAction
+from AhkGlue.autohotkey_action import AutoHotkeyAction
 from pmdeck import pmdeck
 from threading import Event
 
@@ -36,6 +37,7 @@ def on_connected_callback(deck):
     root_folder = Folder(deck)
     root_folder.set_action(12, MicAction(deck))
     root_folder.set_action(14, CallibrateFootAction(deck))
+    root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
     # for i in range(1,15,2):
     #     root_folder.set_action(i, TestAction(deck))
     root_folder.open()
@@ -57,6 +59,7 @@ def callback(icon):
         percent -= 5
         if percent < 0:
             percent = 100
+
 
 if __name__ == "__main__":
 

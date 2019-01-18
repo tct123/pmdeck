@@ -1350,7 +1350,7 @@ WatchDirectory(p*){
 ;;;;;;;;;INCLUDE SEGMANT;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-;#Include ${ActionPath}
+;#Include C:\Users\seyahdoo\Documents\CODE-SEGMANT\Github\private-pmdeck\Python\AhkGlue\CustomActions\Action001\Action.ahk
 #Include Action.ahk
 
 
@@ -1361,7 +1361,6 @@ __Callback(param1, param2) {
 	FileRead newFileContent, %param1%
 	if (!(newFileContent = ""))
 	{
-        MsgBox(%newFileContent%)
 		__MessageReceived(newFileContent)
 		f := FileOpen(param1, "w")
 		f.Write()
@@ -1389,5 +1388,7 @@ __MessageReceived(s) {
 
 
 }
+
+MsgBox "sadasd"
 
 
