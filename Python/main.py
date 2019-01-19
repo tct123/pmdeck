@@ -38,6 +38,7 @@ def on_connected_callback(deck):
     root_folder.set_action(12, MicAction(deck))
     root_folder.set_action(14, CallibrateFootAction(deck))
     root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
+    root_folder.set_action(0, AutoHotkeyAction(deck, "Action000-Blank"))
     # for i in range(1,15,2):
     #     root_folder.set_action(i, TestAction(deck))
     root_folder.open()

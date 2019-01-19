@@ -11,16 +11,34 @@ class AutoHotkeyAction(CustomAction):
 
     def __init__(self, deck, action_id):
 
+        event_names = ["initialize","on_visible","on_invisible","on_pressed","on_hold_down","on_released","on_update_sec","on_update","on_exit"]
+
         f = open("AhkGlue/fileglue.ahk","r")
         gluetext = f.read()
         f.close()
         action_path = os.path.abspath('AhkGlue/CustomActions/{}/Action.ahk'.format(action_id))
         gluetext = gluetext.replace("${ActionPath}", action_path)
 
+        f = open(action_path, "r")
+        action_text = f.read()
+        unused_func = "\n"
+        for e in event_names:
+            if not "{}(){{".format(e) in action_text:
+                unused_func += "{}(){{\nreturn\n}}\n".format(e)
+        gluetext = gluetext.replace("${DefinitionOfUnusedFunctions}", unused_func)
+
         self.action_folder = os.path.abspath('AhkGlue/CustomActions/{}/'.format(action_id))
         gluepath = self.action_folder+"/glue.ahk"
         f = open(gluepath,"w")
         f.write(gluetext)
+        f.close()
+
+        f = open (self.action_folder + "\\events.pipe", "w")
+        f.write("")
+        f.close()
+
+        f = open(self.action_folder + "\\image.pipe", "w")
+        f.write("")
         f.close()
 
         self.proc = subprocess.Popen("AhkGlue/AutoHotkey/AutoHotkeyU64.exe {}".format(gluepath))

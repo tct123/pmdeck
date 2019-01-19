@@ -1,21 +1,25 @@
 
 
+enabled := 1
 
 initialize(){
-    SoundBeep
     SetImage("mic-on.png")
+    SoundBeep
 return
 }
 
 
 on_pressed(){
-    SetImage("mic-off.png")
+    global enabled
+    if (enabled = 1) {
+        SetImage("mic-off.png")
+        enabled := 0
+    }else{
+        SetImage("mic-on.png")
+        enabled := 1
+    }
+
     SoundBeep
-return
+Return
 }
 
-
-on_released(){
-    SetImage("mic-on.png")
-return
-}

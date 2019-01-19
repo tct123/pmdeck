@@ -7,10 +7,6 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 #NoTrayIcon
 
-#Include ${ActionPath}
-
-
-
 SetImage(s){
     Loop{
         FileGetSize size, image.pipe
@@ -24,6 +20,10 @@ SetImage(s){
     }
     Return
 }
+
+#Include ${ActionPath}
+
+${DefinitionOfUnusedFunctions}
 
 WatchFile(filename, callback){
     Loop{

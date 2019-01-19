@@ -2,47 +2,45 @@
 
 initialize(){
 
-    SoundBeep
-
-return
+    return
 }
 
 on_visible(){
 
-return
+    return
 }
 
 on_invisible(){
 
-return
+    return
 }
 
 on_pressed(){
 
-return
+    return
 }
 
 on_hold_down(){
 
-return
+    return
 }
 
 on_released(){
 
-return
+    return
 }
 
 on_update_sec(){
 
-return
+    return
 }
 
 on_update(){
 
-return
+    return
 }
 
 on_exit(){
 
-return
+    return
 }
