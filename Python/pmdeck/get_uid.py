@@ -24,4 +24,5 @@ def get_short_uid():
     return get_uid()[:9]
 
 
-print(get_uid())
+if __name__ == "__main__":
+    print(get_uid())

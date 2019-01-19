@@ -2,3 +2,4 @@ pystray
 zeroconf
 netifaces
 python-baseconv
+watchdog

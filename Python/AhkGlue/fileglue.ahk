@@ -5,1370 +5,252 @@ SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 #SingleInstance Force
 #Persistent
 
-;#NoTrayIcon
+#NoTrayIcon
 
-;;;;;;;;;INCLUDE SEGMANT;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;-----------------------------
 
-;: Title: sizeof function by HotKeyIt
-;
-
-; Function: sizeof
-; Description:
-;      sizeof() is based on AHK_L Objects and supports both, ANSI and UNICODE version, so to use it you will require <a href=http://www.autohotkey.com/forum/viewtopic.php?t=43049>Lexikos AutoHotkey_L.exe</a> or other versions based on it that supports objects.<br><br>nsizeof is used to calculate the size of structures or data types. <br>Visit <a href=http://www.autohotkey.com/forum/viewtopic.php?t=43049>sizeof at AutoHotkey</a> forum, any feedback is welcome.
-; Syntax: size:= sizeof(Structure_Definition or Structure_Object)
+; ==================================================================================================================================
+; Function:       Notifies about changes within folders.
+;                 This is a rewrite of HotKeyIt's WatchDirectory() released at
+;                    http://www.autohotkey.com/board/topic/60125-ahk-lv2-watchdirectory-report-directory-changes/
+; Tested with:    AHK 1.1.23.01 (A32/U32/U64)
+; Tested on:      Win 10 Pro x64
+; Usage:          WatchFolder(Folder, UserFunc[, SubTree := False[, Watch := 3]])
 ; Parameters:
-;	   Field types - All AutoHotkey and Windows Data Types are supported<br>AutoHotkey Data Types<br> Int, Uint, Int64, UInt64, Char, UChar, Short, UShort, Fload and Double.<br>Windows Data Types<br> - note, TCHAR UCHAR and CHAR return actual character rather than the value, use Asc() function to find out the value/code<br>Windows Data types: Asc(char)<br>ATOM,BOOL,BOOLEAN,BYTE,CHAR,COLORREF,DWORD,DWORDLONG,DWORD_PTR,<br>DWORD32,DWORD64,FLOAT,HACCEL,HALF_PTR,HANDLE,HBITMAP,HBRUSH,HCOLORSPACE,HCONV,HCONVLIST,HCURSOR,HDC,<br>HDDEDATA,HDESK,HDROP,HDWP,HENHMETAFILE,HFILE,HFONT,HGDIOBJ,HGLOBAL,HHOOK,HICON,HINSTANCE,HKEY,HKL,<br>HLOCAL,HMENU,HMETAFILE,HMODULE,HMONITOR,HPALETTE,HPEN,HRESULT,HRGN,HRSRC,HSZ,HWINSTA,HWND,INT,<br>INT_PTR,INT32,INT64,LANGID,LCID,LCTYPE,LGRPID,LONG,LONGLONG,LONG_PTR,LONG32,LONG64,LPARAM,LPBOOL,<br>LPBYTE,LPCOLORREF,LPCSTR,LPCTSTR,LPCVOID,LPCWSTR,LPDWORD,LPHANDLE,LPINT,LPLONG,LPSTR,LPTSTR,LPVOID,<br>LPWORD,LPWSTR,LRESULT,PBOOL,PBOOLEAN,PBYTE,PCHAR,PCSTR,PCTSTR,PCWSTR,PDWORD,PDWORDLONG,PDWORD_PTR,<br>PDWORD32,PDWORD64,PFLOAT,PHALF_PTR,PHANDLE,PHKEY,PINT,PINT_PTR,PINT32,PINT64,PLCID,PLONG,PLONGLONG,<br>PLONG_PTR,PLONG32,PLONG64,POINTER_32,POINTER_64,POINTER_SIGNED,POINTER_UNSIGNED,PSHORT,PSIZE_T,<br>PSSIZE_T,PSTR,PTBYTE,PTCHAR,PTSTR,PUCHAR,PUHALF_PTR,PUINT,PUINT_PTR,PUINT32,PUINT64,PULONG,PULONGLONG,<br>PULONG_PTR,PULONG32,PULONG64,PUSHORT,PVOID,PWCHAR,PWORD,PWSTR,SC_HANDLE,SC_LOCK,SERVICE_STATUS_HANDLE,<br>SHORT,SIZE_T,SSIZE_T,TBYTE,TCHAR,UCHAR,UHALF_PTR,UINT,UINT_PTR,UINT32,UINT64,ULONG,ULONGLONG,<br>ULONG_PTR,ULONG32,ULONG64,USHORT,USN,WCHAR,WORD,WPARAM
-;	   <b>Parameters</b> - <b>Description</b>
-;	   size - The size of structure or data type
-;	   Structure_Definition - C/C++ syntax or usual definition (must not be multiline) e.g. "Int x,Int y", C/C++ definitions must be multiline.
-; Return Value:
-;     sizeof returns size of structures or data types
+;     Folder      -  The full qualified path of the folder to be watched.
+;                    Pass the string "**PAUSE" and set UserFunc to either True or False to pause respectively resume watching.
+;                    Pass the string "**END" and an arbitrary value in UserFunc to completely stop watching anytime.
+;                    If not, it will be done internally on exit.
+;     UserFunc    -  The name of a user-defined function to call on changes. The function must accept at least two parameters:
+;                    1: The path of the affected folder. The final backslash is not included even if it is a drive's root
+;                       directory (e.g. C:).
+;                    2: An array of change notifications containing the following keys:
+;                       Action:  One of the integer values specified as FILE_ACTION_... (see below).
+;                                In case of renaming Action is set to FILE_ACTION_RENAMED (4).
+;                       Name:    The full path of the changed file or folder.
+;                       OldName: The previous path in case of renaming, otherwise not used.
+;                       IsDir:   True if Name is a directory; otherwise False. In case of Action 2 (removed) IsDir is always False.
+;                    Pass the string "**DEL" to remove the directory from the list of watched folders.
+;     SubTree     -  Set to true if you want the whole subtree to be watched (i.e. the contents of all sub-folders).
+;                    Default: False - sub-folders aren't watched.
+;     Watch       -  The kind of changes to watch for. This can be one or any combination of the FILE_NOTIFY_CHANGES_...
+;                    values specified below.
+;                    Default: 0x03 - FILE_NOTIFY_CHANGE_FILE_NAME + FILE_NOTIFY_CHANGE_DIR_NAME
+; Return values:
+;     Returns True on success; otherwise False.
+; Change history:
+;     1.0.02.00/2016-11-30/just me        -  bug-fix for closing handles with the '**END' option.
+;     1.0.01.00/2016-03-14/just me        -  bug-fix for multiple folders
+;     1.0.00.00/2015-06-21/just me        -  initial release
+; License:
+;     The Unlicense -> http://unlicense.org/
 ; Remarks:
-;		None.
-; Related:
-; Example:
-;		file:
-
-sizeof(_TYPE_,parent_offset=0,ByRef _align_total_=0){
-  ;Windows and AHK Data Types, used to find out the corresponding size
-  static _types__:="
-  (LTrim Join
-    ,ATOM:2,LANGID:2,WCHAR:2,WORD:2,PTR:" A_PtrSize ",UPTR:" A_PtrSize ",SHORT:2,USHORT:2,INT:4,UINT:4,INT64:8,UINT64:8,DOUBLE:8,FLOAT:4,CHAR:1,UCHAR:1,__int64:8
-    ,TBYTE:" (A_IsUnicode?2:1) ",TCHAR:" (A_IsUnicode?2:1) ",HALF_PTR:" (A_PtrSize=8?4:2) ",UHALF_PTR:" (A_PtrSize=8?4:2) ",INT32:4,LONG:4,LONG32:4,LONGLONG:8
-    ,LONG64:8,USN:8,HFILE:4,HRESULT:4,INT_PTR:" A_PtrSize ",LONG_PTR:" A_PtrSize ",POINTER_64:" A_PtrSize ",POINTER_SIGNED:" A_PtrSize "
-    ,BOOL:4,SSIZE_T:" A_PtrSize ",WPARAM:" A_PtrSize ",BOOLEAN:1,BYTE:1,COLORREF:4,DWORD:4,DWORD32:4,LCID:4,LCTYPE:4,LGRPID:4,LRESULT:4,PBOOL:" A_PtrSize "
-    ,PBOOLEAN:" A_PtrSize ",PBYTE:" A_PtrSize ",PCHAR:" A_PtrSize ",PCSTR:" A_PtrSize ",PCTSTR:" A_PtrSize ",PCWSTR:" A_PtrSize ",PDWORD:" A_PtrSize "
-    ,PDWORDLONG:" A_PtrSize ",PDWORD_PTR:" A_PtrSize ",PDWORD32:" A_PtrSize ",PDWORD64:" A_PtrSize ",PFLOAT:" A_PtrSize ",PHALF_PTR:" A_PtrSize "
-    ,UINT32:4,ULONG:4,ULONG32:4,DWORDLONG:8,DWORD64:8,ULONGLONG:8,ULONG64:8,DWORD_PTR:" A_PtrSize ",HACCEL:" A_PtrSize ",HANDLE:" A_PtrSize "
-     ,HBITMAP:" A_PtrSize ",HBRUSH:" A_PtrSize ",HCOLORSPACE:" A_PtrSize ",HCONV:" A_PtrSize ",HCONVLIST:" A_PtrSize ",HCURSOR:" A_PtrSize ",HDC:" A_PtrSize "
-     ,HDDEDATA:" A_PtrSize ",HDESK:" A_PtrSize ",HDROP:" A_PtrSize ",HDWP:" A_PtrSize ",HENHMETAFILE:" A_PtrSize ",HFONT:" A_PtrSize ",USAGE:" 2 "
-   )"
-  static _types_:=_types__ "
-  (LTrim Join
-     ,HGDIOBJ:" A_PtrSize ",HGLOBAL:" A_PtrSize ",HHOOK:" A_PtrSize ",HICON:" A_PtrSize ",HINSTANCE:" A_PtrSize ",HKEY:" A_PtrSize ",HKL:" A_PtrSize "
-     ,HLOCAL:" A_PtrSize ",HMENU:" A_PtrSize ",HMETAFILE:" A_PtrSize ",HMODULE:" A_PtrSize ",HMONITOR:" A_PtrSize ",HPALETTE:" A_PtrSize ",HPEN:" A_PtrSize "
-     ,HRGN:" A_PtrSize ",HRSRC:" A_PtrSize ",HSZ:" A_PtrSize ",HWINSTA:" A_PtrSize ",HWND:" A_PtrSize ",LPARAM:" A_PtrSize ",LPBOOL:" A_PtrSize ",LPBYTE:" A_PtrSize "
-     ,LPCOLORREF:" A_PtrSize ",LPCSTR:" A_PtrSize ",LPCTSTR:" A_PtrSize ",LPCVOID:" A_PtrSize ",LPCWSTR:" A_PtrSize ",LPDWORD:" A_PtrSize ",LPHANDLE:" A_PtrSize "
-     ,LPINT:" A_PtrSize ",LPLONG:" A_PtrSize ",LPSTR:" A_PtrSize ",LPTSTR:" A_PtrSize ",LPVOID:" A_PtrSize ",LPWORD:" A_PtrSize ",LPWSTR:" A_PtrSize "
-     ,PHANDLE:" A_PtrSize ",PHKEY:" A_PtrSize ",PINT:" A_PtrSize ",PINT_PTR:" A_PtrSize ",PINT32:" A_PtrSize ",PINT64:" A_PtrSize ",PLCID:" A_PtrSize "
-     ,PLONG:" A_PtrSize ",PLONGLONG:" A_PtrSize ",PLONG_PTR:" A_PtrSize ",PLONG32:" A_PtrSize ",PLONG64:" A_PtrSize ",POINTER_32:" A_PtrSize "
-     ,POINTER_UNSIGNED:" A_PtrSize ",PSHORT:" A_PtrSize ",PSIZE_T:" A_PtrSize ",PSSIZE_T:" A_PtrSize ",PSTR:" A_PtrSize ",PTBYTE:" A_PtrSize "
-     ,PTCHAR:" A_PtrSize ",PTSTR:" A_PtrSize ",PUCHAR:" A_PtrSize ",PUHALF_PTR:" A_PtrSize ",PUINT:" A_PtrSize ",PUINT_PTR:" A_PtrSize "
-     ,PUINT32:" A_PtrSize ",PUINT64:" A_PtrSize ",PULONG:" A_PtrSize ",PULONGLONG:" A_PtrSize ",PULONG_PTR:" A_PtrSize ",PULONG32:" A_PtrSize "
-     ,PULONG64:" A_PtrSize ",PUSHORT:" A_PtrSize ",PVOID:" A_PtrSize ",PWCHAR:" A_PtrSize ",PWORD:" A_PtrSize ",PWSTR:" A_PtrSize ",SC_HANDLE:" A_PtrSize "
-     ,SC_LOCK:" A_PtrSize ",SERVICE_STATUS_HANDLE:" A_PtrSize ",SIZE_T:" A_PtrSize ",UINT_PTR:" A_PtrSize ",ULONG_PTR:" A_PtrSize ",VOID:" A_PtrSize "
-     )"
-  local _,_ArrName_:="",_ArrType_,_ArrSize_,_defobj_,_idx_,_LF_,_LF_BKP_,_match_,_offset_,_padding_,_struct_
-				,_total_union_size_,_uix_,_union_,_union_size_,_in_struct_,_mod_,_max_size_,_struct_align_
-	_offset_:=parent_offset           ; Init size/offset to 0 or parent_offset
-
-  If IsObject(_TYPE_){    ; If structure object - check for offset in structure and return pointer + last offset + its data size
-    return _TYPE_["`a`a"]
-  }
-
-  If RegExMatch(_TYPE_,"^[\w\d\._]+$"){ ; structures name was supplied, resolve to global var and run again
-      If InStr(_types_,"," _TYPE_ ":")
-        Return SubStr(_types_,InStr(_types_,"," _TYPE_ ":") + 2 + StrLen(_TYPE_),1)
-      else If InStr(_TYPE_,"."){ ;check for object that holds structure definition
-        Loop,Parse,_TYPE_,.
-          If A_Index=1
-            _defobj_:=%A_LoopField%
-          else _defobj_:=_defobj_[A_LoopField]
-        Return sizeof(_defobj_,parent_offset)
-      } else Return sizeof(%_TYPE_%,parent_offset)
-  } else _defobj_:=""
-  If InStr(_TYPE_,"`n") {   ; C/C++ style definition, convert
-    _offset_:=""            ; This will hold new structure
-    ,_struct_:=[]            ; This will keep track if union is structure
-    ,_union_:=0              ; This will keep track of union depth
-    Loop,Parse,_TYPE_,`n,`r`t%A_Space%%A_Tab%
-    {
-      _LF_:=""
-      Loop,Parse,A_LoopField,`,`;,`t%A_Space%%A_Tab%
-      {
-        If RegExMatch(A_LoopField,"^\s*//") ;break on comments and continue main loop
-            break
-        If (A_LoopField){ ; skip empty lines
-            If (!_LF_ && _ArrType_:=RegExMatch(A_LoopField,"[\w\d_#@]\s+[\w\d_#@]")) ; new line, find out data type and save key in _LF_ Data type will be added later
-              _LF_:=RegExReplace(A_LoopField,"[\w\d_#@]\K\s+.*$")
-            If Instr(A_LoopField,"{"){ ; Union, also check if it is a structure
-              _union_++,_struct_.Insert(_union_,RegExMatch(A_LoopField,"i)^\s*struct\s*\{"))
-            } else If InStr(A_LoopField,"}") ; end of union/struct
-              _offset_.="}"
-            else { ; not starting or ending struct or union so add definitions and apply Data Type.
-              If _union_ ; add { or struct{
-                  Loop % _union_
-                    _ArrName_.=(_struct_[A_Index]?"struct":"") "{"
-              _offset_.=(_offset_ ? "," : "") _ArrName_ ((_ArrType_ && A_Index!=1)?(_LF_ " "):"") RegExReplace(A_LoopField,"\s+"," ")
-              ,_ArrName_:="",_union_:=0
-            }
-        }
-      }
-    }
-    _TYPE_:=_offset_
-    ,_offset_:=parent_offset           ; Init size/offset to 0 or parent_offset
-  }
-
-  ; Following keep track of union size/offset
-  _union_:=[]               ; keep track of union level, required to reset offset after union is parsed
-  ,_struct_:=[]              ; for each union level keep track if it is a structure (because here offset needs to increase
-  ,_union_size_:=[]          ; keep track of highest member within the union or structure, used to calculate new offset after union
-  ,_struct_align_:=[]        ; keep track of alignment before structure
-  ,_total_union_size_:=0     ; used in combination with above, each loop the total offset is updated if current data size is higher
-  ;,_align_total_:=0          ; used to calculate alignment for total size of structure
-  ,_in_struct_:=1
-  ; Parse given structure definition and calculate size
-  ; Structures will be resolved by recrusive calls (a structure must be global)
-  Loop,Parse,_TYPE_,`,`; ;,%A_Space%%A_Tab%`n`r
-  {
-    _in_struct_+=StrLen(A_LoopField)+1
-    If ("" = _LF_ := trim(A_LoopField,A_Space A_Tab "`n`r"))
-      continue
-    _LF_BKP_:=_LF_ ;to check for ending brackets = union,struct
-    ; Check for STARTING union and set union helpers
-    While (_match_:=RegExMatch(_LF_,"i)^(struct|union)?\s*\{\K"))
-      ; correct offset for union/structure, sizeof_maxsize returns max size of union or structure
-        _max_size_:=sizeof_maxsize(SubStr(_TYPE_,_in_struct_-StrLen(A_LoopField)-1+(StrLen(_LF_BKP_)-StrLen(_LF_))))
-        ,_union_.Insert(_offset_+=(_mod_:=Mod(_offset_,_max_size_))?Mod(_max_size_-_mod_,_max_size_):0)
-        ,_union_size_.Insert(0)
-        ,_struct_align_.Insert(_align_total_>_max_size_?_align_total_:_max_size_)
-        ,_struct_.Insert(RegExMatch(_LF_,"i)^struct\s*\{")?(1,_align_total_:=0):0)
-        ,_LF_:=SubStr(_LF_,_match_)
-    StringReplace,_LF_,_LF_,},,A
-
-    If InStr(_LF_,"*"){ ; It's a pointer, size will be always A_PtrSize
-      _offset_ += (_mod_:=Mod(_offset_ + A_PtrSize,A_PtrSize)?A_PtrSize-_mod_:0) + A_PtrSize
-      ,_align_total_:=_align_total_<A_PtrSize?A_PtrSize:_align_total_
-    } else {
-      ; Split array type and optionally the size of array, e.g. "TCHAR chr[5]"
-      RegExMatch(_LF_,"^(?<ArrType_>[\w\d\._#@]+)?\s*(?<ArrName_>[\w\d\._#@]+)?\s*\[?(?<ArrSize_>\d+)?\]?\s*$",_)
-      If (!_ArrName_ && !_ArrSize_ && !InStr( _types_  ,"," _ArrType_ ":"))
-        _ArrName_:=_ArrType_,_ArrType_:="UInt"
-      If InStr(_ArrType_,"."){ ;check for object that holds structure definition
-        Loop,Parse,_ArrType_,.
-          If A_Index=1
-            _defobj_:=%A_LoopField%
-          else _defobj_:=_defobj_[A_LoopField]
-        ; _ArrType_:=_defobj_                                                                     ;                   ??????????????????????????????????????
-      }
-      If (_idx_:=InStr( _types_  ,"," _ArrType_ ":")) ; AHK or Windows data type
-        _padding_:=SubStr( _types_  , _idx_+StrLen(_ArrType_)+2 , 1 ),_align_total_:=_align_total_<_padding_?_padding_:_align_total_
-      else _padding_:= sizeof(_defobj_?_defobj_:%_ArrType_%,0,_align_total_),_max_size_:=sizeof_maxsize(_defobj_?_defobj_:%_ArrType_%)
-      if (_max_size_){
-        if (_mod_:=Mod(_offset_,_max_size_))
-          _offset_ += Mod(_max_size_-_mod_,_max_size_)
-      } else if _mod_:=Mod(_offset_,_padding_)
-        _offset_ += Mod(_padding_-_mod_,_padding_)
-      _offset_ += (_padding_ * (_ArrSize_?_ArrSize_:1))
-      _max_size_:=0
-    }
-    ; It's a union or struct, check if new member is higher then previous members
-    If (_uix_:=_union_.MaxIndex()) && (_max_size_:=_offset_ - _union_[_uix_])>_union_size_[_uix_]
-      _union_size_[_uix_]:=_max_size_
-    _max_size_:=0
-    ; It's a union and not struct
-    If (_uix_ && !_struct_[_uix_])
-      _offset_:=_union_[_uix_]
-
-    ; Check for ENDING union and reset offset and union helpers
-    While (SubStr(_LF_BKP_,0)="}"){
-      If !(_uix_:=_union_.MaxIndex()){
-        MsgBox,0, Incorrect structure, missing opening braket {`nProgram will exit now `n%_TYPE_%
-        ExitApp
-      }
-      ; reset offset and align because we left a union or structure
-      if (_uix_>1 && _struct_[_uix_-1]){
-        If (_mod_:=Mod(_offset_,_struct_align_[_uix_]))
-          _offset_+=Mod(_struct_align_[_uix_]-_mod_,_struct_align_[_uix_])
-      } else _offset_:=_union_[_uix_]
-      ; a member of union/struct is smaller than previous align, restore
-      if (_struct_[_uix_] &&_struct_align_[_uix_]>_align_total_)
-        _align_total_ := _struct_align_[_uix_]
-      ; Increase total size of union/structure if necessary
-      _total_union_size_ := _union_size_[_uix_]>_total_union_size_?_union_size_[_uix_]:_total_union_size_
-      ,_union_.Remove() ,_struct_.Remove() ,_union_size_.Remove(),_struct_align_.Remove() ; remove latest items
-      ,_LF_BKP_:=SubStr(_LF_BKP_,1,StrLen(_LF_BKP_)-1)
-      If (_uix_=1){ ; leaving top union, add offset
-        if (_mod_:=Mod(_total_union_size_,_align_total_))
-          _total_union_size_ += Mod(_align_total_-_mod_,_align_total_)
-        _offset_+=_total_union_size_,_total_union_size_:=0
-      }
-    }
-  }
-  _offset_+= Mod(_align_total_ - Mod(_offset_,_align_total_),_align_total_)
-  Return _offset_
-}
-sizeof_maxsize(s){
-  static _types__:="
-  (LTrim Join
-    ,ATOM:2,LANGID:2,WCHAR:2,WORD:2,PTR:" A_PtrSize ",UPTR:" A_PtrSize ",SHORT:2,USHORT:2,INT:4,UINT:4,INT64:8,UINT64:8,DOUBLE:8,FLOAT:4,CHAR:1,UCHAR:1,__int64:8
-    ,TBYTE:" (A_IsUnicode?2:1) ",TCHAR:" (A_IsUnicode?2:1) ",HALF_PTR:" (A_PtrSize=8?4:2) ",UHALF_PTR:" (A_PtrSize=8?4:2) ",INT32:4,LONG:4,LONG32:4,LONGLONG:8
-    ,LONG64:8,USN:8,HFILE:4,HRESULT:4,INT_PTR:" A_PtrSize ",LONG_PTR:" A_PtrSize ",POINTER_64:" A_PtrSize ",POINTER_SIGNED:" A_PtrSize "
-    ,BOOL:4,SSIZE_T:" A_PtrSize ",WPARAM:" A_PtrSize ",BOOLEAN:1,BYTE:1,COLORREF:4,DWORD:4,DWORD32:4,LCID:4,LCTYPE:4,LGRPID:4,LRESULT:4,PBOOL:" A_PtrSize "
-    ,PBOOLEAN:" A_PtrSize ",PBYTE:" A_PtrSize ",PCHAR:" A_PtrSize ",PCSTR:" A_PtrSize ",PCTSTR:" A_PtrSize ",PCWSTR:" A_PtrSize ",PDWORD:" A_PtrSize "
-    ,PDWORDLONG:" A_PtrSize ",PDWORD_PTR:" A_PtrSize ",PDWORD32:" A_PtrSize ",PDWORD64:" A_PtrSize ",PFLOAT:" A_PtrSize ",PHALF_PTR:" A_PtrSize "
-    ,UINT32:4,ULONG:4,ULONG32:4,DWORDLONG:8,DWORD64:8,ULONGLONG:8,ULONG64:8,DWORD_PTR:" A_PtrSize ",HACCEL:" A_PtrSize ",HANDLE:" A_PtrSize "
-     ,HBITMAP:" A_PtrSize ",HBRUSH:" A_PtrSize ",HCOLORSPACE:" A_PtrSize ",HCONV:" A_PtrSize ",HCONVLIST:" A_PtrSize ",HCURSOR:" A_PtrSize ",HDC:" A_PtrSize "
-     ,HDDEDATA:" A_PtrSize ",HDESK:" A_PtrSize ",HDROP:" A_PtrSize ",HDWP:" A_PtrSize ",HENHMETAFILE:" A_PtrSize ",HFONT:" A_PtrSize ",USAGE:" 2 "
-   )"
-  static _types_:=_types__ "
-  (LTrim Join
-     ,HGDIOBJ:" A_PtrSize ",HGLOBAL:" A_PtrSize ",HHOOK:" A_PtrSize ",HICON:" A_PtrSize ",HINSTANCE:" A_PtrSize ",HKEY:" A_PtrSize ",HKL:" A_PtrSize "
-     ,HLOCAL:" A_PtrSize ",HMENU:" A_PtrSize ",HMETAFILE:" A_PtrSize ",HMODULE:" A_PtrSize ",HMONITOR:" A_PtrSize ",HPALETTE:" A_PtrSize ",HPEN:" A_PtrSize "
-     ,HRGN:" A_PtrSize ",HRSRC:" A_PtrSize ",HSZ:" A_PtrSize ",HWINSTA:" A_PtrSize ",HWND:" A_PtrSize ",LPARAM:" A_PtrSize ",LPBOOL:" A_PtrSize ",LPBYTE:" A_PtrSize "
-     ,LPCOLORREF:" A_PtrSize ",LPCSTR:" A_PtrSize ",LPCTSTR:" A_PtrSize ",LPCVOID:" A_PtrSize ",LPCWSTR:" A_PtrSize ",LPDWORD:" A_PtrSize ",LPHANDLE:" A_PtrSize "
-     ,LPINT:" A_PtrSize ",LPLONG:" A_PtrSize ",LPSTR:" A_PtrSize ",LPTSTR:" A_PtrSize ",LPVOID:" A_PtrSize ",LPWORD:" A_PtrSize ",LPWSTR:" A_PtrSize "
-     ,PHANDLE:" A_PtrSize ",PHKEY:" A_PtrSize ",PINT:" A_PtrSize ",PINT_PTR:" A_PtrSize ",PINT32:" A_PtrSize ",PINT64:" A_PtrSize ",PLCID:" A_PtrSize "
-     ,PLONG:" A_PtrSize ",PLONGLONG:" A_PtrSize ",PLONG_PTR:" A_PtrSize ",PLONG32:" A_PtrSize ",PLONG64:" A_PtrSize ",POINTER_32:" A_PtrSize "
-     ,POINTER_UNSIGNED:" A_PtrSize ",PSHORT:" A_PtrSize ",PSIZE_T:" A_PtrSize ",PSSIZE_T:" A_PtrSize ",PSTR:" A_PtrSize ",PTBYTE:" A_PtrSize "
-     ,PTCHAR:" A_PtrSize ",PTSTR:" A_PtrSize ",PUCHAR:" A_PtrSize ",PUHALF_PTR:" A_PtrSize ",PUINT:" A_PtrSize ",PUINT_PTR:" A_PtrSize "
-     ,PUINT32:" A_PtrSize ",PUINT64:" A_PtrSize ",PULONG:" A_PtrSize ",PULONGLONG:" A_PtrSize ",PULONG_PTR:" A_PtrSize ",PULONG32:" A_PtrSize "
-     ,PULONG64:" A_PtrSize ",PUSHORT:" A_PtrSize ",PVOID:" A_PtrSize ",PWCHAR:" A_PtrSize ",PWORD:" A_PtrSize ",PWSTR:" A_PtrSize ",SC_HANDLE:" A_PtrSize "
-     ,SC_LOCK:" A_PtrSize ",SERVICE_STATUS_HANDLE:" A_PtrSize ",SIZE_T:" A_PtrSize ",UINT_PTR:" A_PtrSize ",ULONG_PTR:" A_PtrSize ",VOID:" A_PtrSize "
-     )"
-  max:=0,i:=0
-  s:=trim(s,"`n`r`t ")
-  If InStr(s,"}"){
-    Loop,Parse,s
-      if (A_LoopField="{")
-        i++
-      else if (A_LoopField="}"){
-        if --i<1{
-          end:=A_Index
-          break
-        }
-      }
-    if end
-      s:=SubStr(s,1,end)
-  }
-  Loop,Parse,s,`n,`r
-  {
-    _struct_:=(i:=InStr(A_LoopField," //"))?SubStr(A_LoopField,1,i):A_LoopField
-    Loop,Parse,_struct_,`;`,{},%A_Space%%A_Tab%
-      if A_LoopField&&!InStr(".union.struct.","." A_LoopField ".")
-        if (!InStr(A_LoopField,A_Tab)&&!InStr(A_LoopField," "))
-          max:=max<4?4:max
-        else if (sizeof(A_LoopField,0,size:=0) && max<size)
-          max:=size
-  }
-  return max
-}
-
-;: Title: _Struct by HotKeyIt
-;
-
-; Function: _Struct
-; Description:
-;      _Struct is based on AHK_L objects and supports both, ANSI and UNICODE version. To use it you will require <a href=http://www.autohotkey.com/forum/viewtopic.php?t=43049>Lexikos AutoHotkey_L.exe</a> or other versions based on it.<br><br>new _Struct is used to create new structure. A structure must be defined as a global variable or an item of global class (e.g. "MyClass.Struct").<br>_Struct can handle structure in structure as well as Arrays of structures and Vectors.<br>Visit <a href=http://www.autohotkey.com/forum/viewtopic.php?t=43049>_Struct on AutoHotkey</a> forum, any feedback is welcome.
-; Syntax: MyStruct:= new _Struct(Structure_Definition,Address,initialization)
-; Parameters:
-;	   General Design - Class _Struct will create Object(s) that will manage fields of structure(s), for example<br>left,top,right,bottom<br>RC := new _Struct("RECT")<br>will create a RECT structure with fields left,top,right,bottom of type UInt. To pass the structure its pointer to a function, DllCall or SendMessage use RC[""].<br><br>To access fields you can use usual Object syntax: RC.left, RC.right ...<br>To set a field of the structure use RC.top := 100.
-;	   Field types - Following AutoHotkey and Windows Data Types are supported:<br><br>AutoHotkey Data Types:<br>Int, Uint, Int64, UInt64, Char, UChar, Short, UShort, Fload and Double.<br><br>Windows Data Types:<br>ATOM,BOOL,BOOLEAN,BYTE,CHAR,COLORREF,DWORD,DWORDLONG,DWORD_PTR,<br>DWORD32,DWORD64,FLOAT,HACCEL,HALF_PTR,HANDLE,HBITMAP,HBRUSH,HCOLORSPACE,HCONV,HCONVLIST,HCURSOR,HDC,<br>HDDEDATA,HDESK,HDROP,HDWP,HENHMETAFILE,HFILE,HFONT,HGDIOBJ,HGLOBAL,HHOOK,HICON,HINSTANCE,HKEY,HKL,<br>HLOCAL,HMENU,HMETAFILE,HMODULE,HMONITOR,HPALETTE,HPEN,HRESULT,HRGN,HRSRC,HSZ,HWINSTA,HWND,INT,<br>INT_PTR,INT32,INT64,LANGID,LCID,LCTYPE,LGRPID,LONG,LONGLONG,LONG_PTR,LONG32,LONG64,LPARAM,LPBOOL,<br>LPBYTE,LPCOLORREF,LPCSTR,LPCTSTR,LPCVOID,LPCWSTR,LPDWORD,LPHANDLE,LPINT,LPLONG,LPSTR,LPTSTR,LPVOID,<br>LPWORD,LPWSTR,LRESULT,PBOOL,PBOOLEAN,PBYTE,PCHAR,PCSTR,PCTSTR,PCWSTR,PDWORD,PDWORDLONG,PDWORD_PTR,<br>PDWORD32,PDWORD64,PFLOAT,PHALF_PTR,PHANDLE,PHKEY,PINT,PINT_PTR,PINT32,PINT64,PLCID,PLONG,PLONGLONG,<br>PLONG_PTR,PLONG32,PLONG64,POINTER_32,POINTER_64,POINTER_SIGNED,POINTER_UNSIGNED,PSHORT,PSIZE_T,<br>PSSIZE_T,PSTR,PTBYTE,PTCHAR,PTSTR,PUCHAR,PUHALF_PTR,PUINT,PUINT_PTR,PUINT32,PUINT64,PULONG,PULONGLONG,<br>PULONG_PTR,PULONG32,PULONG64,PUSHORT,PVOID,PWCHAR,PWORD,PWSTR,SC_HANDLE,SC_LOCK,SERVICE_STATUS_HANDLE,<br>SHORT,SIZE_T,SSIZE_T,TBYTE,TCHAR,UCHAR,UHALF_PTR,UINT,UINT_PTR,UINT32,UINT64,ULONG,ULONGLONG,<br>ULONG_PTR,ULONG32,ULONG64,USHORT,USN,WCHAR,WORD,WPARAM
-;	   <b>Structure Definition</b> - <b>Description</b>
-;	   User defined - To create a user defined structure you will need to pass a string of predefined types and field names.<br>Default type is UInt, so for example for a RECT structure type can be omited: <b>"left,top,right,left"</b>, which is the same as <b>"Uint left,Uint top,Uint right,Uint bottom"</b><br><br>You can also use structures very similar to C#/C++ syntax, see example.
-;	   Global - Global variables can be used to save structures, easily pass name of that variable as first parameter, e.g. new _Struct("MyStruct") where MyStruct must be a global variable with structure definition. Also new _Struct(MyStruct) can be used if variable is accessible.
-;	   Array - To create an array of structures include a digit in the end of your string enclosed in squared brackets.<br>For example "RECT[2]" would create an array of 2 structures.<br>This feature can also be used for user defined arrays, for example "Int age,TCHAR name[10]".
-;	   Union - Using {} you can create union, for example: <br>_AHKVar:="{Int64 ContentsInt64,Double ContentsDouble,object},...
-;	   Struct - Using struct{} you can create structures in union or in structures.
-;	   Pointer - To create a pointer you can use *, for example: CHR:="char *str" will hold a pointer to a character. Same way you can have a structure in structure so you can call it recursive, for example Label.NextLabel.NextLabel.NextLabel.JumpToLine
-;	   <b>Parameters</b> - <b>Description</b>
-;	   MyStruct - This is a variable that will hold the object representing the strucuture which is returned by new _Struct(...).
-;	   Structure_Definition - C/C++ syntax or one-line definition e.g. "Int x,Int y".
-;	   pointer - Pass a pointer as second parameter to occupy existing strucure.
-;	   Initialization - Pass an object to initialize structure, e.g. {left:100,top:20}. If pointer is not used initialization can be specified in second parameter.
-;	   <b>Methods</b> - <b>Description</b>
-;	   Strct.Type(itm) - Returns type of item or structure
-;	   Strct.AhkType(itm) - Returns AHK type of item or structure to be used with NumGet and NumPut as well as DllCall
-;	   Strct.Size() - Returns size of structure, same as sizeof(MyStruct)
-;	   Strct.SizeT(itm) - Returns size of an item
-;	   Strct.Offset(itm) - Returns offset for items
-;	   Strct.Encoding(itm) - Returns encoding for items, to be used with StrGet and StrPut
-;	   Strct.Alloc(itm,size[,ptrsize]) - Allocates memory in bytes, ptrsize is used to create pointers
-;	   Strct.Capacity(itm) - Returns memory capacity for items.
-;	   Strct.IsPointer(itm) - Returns whether the item is a pointer (defined using *).
-; Return Value:
-;     A class object representing your structure
-; Remarks:
-;		<b>NOTE!!! accessing a field that does not exist will cause recrusive calls and will crash your script, these errors are not catched for performance reasons.<br>TCHAR, UCHAR and CHAR return actual character rather than the value, use Asc() function to find out the value/code.
-; Related:
-; Example:
-;		file:Struct_Example.ahk
-;
-Class _Struct {
-	; Data Sizes
-  static PTR:=A_PtrSize,UPTR:=A_PtrSize,SHORT:=2,USHORT:=2,INT:=4,UINT:=4,__int64:=8,INT64:=8,UINT64:=8,DOUBLE:=8,FLOAT:=4,CHAR:=1,UCHAR:=1,VOID:=A_PtrSize
-    ,TBYTE:=A_IsUnicode?2:1,TCHAR:=A_IsUnicode?2:1,HALF_PTR:=A_PtrSize=8?4:2,UHALF_PTR:=A_PtrSize=8?4:2,INT32:=4,LONG:=4,LONG32:=4,LONGLONG:=8
-    ,LONG64:=8,USN:=8,HFILE:=4,HRESULT:=4,INT_PTR:=A_PtrSize,LONG_PTR:=A_PtrSize,POINTER_64:=A_PtrSize,POINTER_SIGNED:=A_PtrSize
-    ,BOOL:=4,SSIZE_T:=A_PtrSize,WPARAM:=A_PtrSize,BOOLEAN:=1,BYTE:=1,COLORREF:=4,DWORD:=4,DWORD32:=4,LCID:=4,LCTYPE:=4,LGRPID:=4,LRESULT:=4,PBOOL:=4
-    ,PBOOLEAN:=A_PtrSize,PBYTE:=A_PtrSize,PCHAR:=A_PtrSize,PCSTR:=A_PtrSize,PCTSTR:=A_PtrSize,PCWSTR:=A_PtrSize,PDWORD:=A_PtrSize,PDWORDLONG:=A_PtrSize
-    ,PDWORD_PTR:=A_PtrSize,PDWORD32:=A_PtrSize,PDWORD64:=A_PtrSize,PFLOAT:=A_PtrSize,PHALF_PTR:=A_PtrSize
-    ,UINT32:=4,ULONG:=4,ULONG32:=4,DWORDLONG:=8,DWORD64:=8,ULONGLONG:=8,ULONG64:=8,DWORD_PTR:=A_PtrSize,HACCEL:=A_PtrSize,HANDLE:=A_PtrSize
-    ,HBITMAP:=A_PtrSize,HBRUSH:=A_PtrSize,HCOLORSPACE:=A_PtrSize,HCONV:=A_PtrSize,HCONVLIST:=A_PtrSize,HCURSOR:=A_PtrSize,HDC:=A_PtrSize
-    ,HDDEDATA:=A_PtrSize,HDESK:=A_PtrSize,HDROP:=A_PtrSize,HDWP:=A_PtrSize,HENHMETAFILE:=A_PtrSize,HFONT:=A_PtrSize
-  static HGDIOBJ:=A_PtrSize,HGLOBAL:=A_PtrSize,HHOOK:=A_PtrSize,HICON:=A_PtrSize,HINSTANCE:=A_PtrSize,HKEY:=A_PtrSize,HKL:=A_PtrSize
-    ,HLOCAL:=A_PtrSize,HMENU:=A_PtrSize,HMETAFILE:=A_PtrSize,HMODULE:=A_PtrSize,HMONITOR:=A_PtrSize,HPALETTE:=A_PtrSize,HPEN:=A_PtrSize
-    ,HRGN:=A_PtrSize,HRSRC:=A_PtrSize,HSZ:=A_PtrSize,HWINSTA:=A_PtrSize,HWND:=A_PtrSize,LPARAM:=A_PtrSize,LPBOOL:=A_PtrSize,LPBYTE:=A_PtrSize
-    ,LPCOLORREF:=A_PtrSize,LPCSTR:=A_PtrSize,LPCTSTR:=A_PtrSize,LPCVOID:=A_PtrSize,LPCWSTR:=A_PtrSize,LPDWORD:=A_PtrSize,LPHANDLE:=A_PtrSize
-    ,LPINT:=A_PtrSize,LPLONG:=A_PtrSize,LPSTR:=A_PtrSize,LPTSTR:=A_PtrSize,LPVOID:=A_PtrSize,LPWORD:=A_PtrSize,LPWSTR:=A_PtrSize,PHANDLE:=A_PtrSize
-    ,PHKEY:=A_PtrSize,PINT:=A_PtrSize,PINT_PTR:=A_PtrSize,PINT32:=A_PtrSize,PINT64:=A_PtrSize,PLCID:=A_PtrSize,PLONG:=A_PtrSize,PLONGLONG:=A_PtrSize
-    ,PLONG_PTR:=A_PtrSize,PLONG32:=A_PtrSize,PLONG64:=A_PtrSize,POINTER_32:=A_PtrSize,POINTER_UNSIGNED:=A_PtrSize,PSHORT:=A_PtrSize,PSIZE_T:=A_PtrSize
-    ,PSSIZE_T:=A_PtrSize,PSTR:=A_PtrSize,PTBYTE:=A_PtrSize,PTCHAR:=A_PtrSize,PTSTR:=A_PtrSize,PUCHAR:=A_PtrSize,PUHALF_PTR:=A_PtrSize,PUINT:=A_PtrSize
-    ,PUINT_PTR:=A_PtrSize,PUINT32:=A_PtrSize,PUINT64:=A_PtrSize,PULONG:=A_PtrSize,PULONGLONG:=A_PtrSize,PULONG_PTR:=A_PtrSize,PULONG32:=A_PtrSize
-    ,PULONG64:=A_PtrSize,PUSHORT:=A_PtrSize,PVOID:=A_PtrSize,PWCHAR:=A_PtrSize,PWORD:=A_PtrSize,PWSTR:=A_PtrSize,SC_HANDLE:=A_PtrSize
-    ,SC_LOCK:=A_PtrSize,SERVICE_STATUS_HANDLE:=A_PtrSize,SIZE_T:=A_PtrSize,UINT_PTR:=A_PtrSize,ULONG_PTR:=A_PtrSize,ATOM:=2,LANGID:=2,WCHAR:=2,WORD:=2,USAGE:=2
-	; Data Types
-  static _PTR:="PTR",_UPTR:="UPTR",_SHORT:="Short",_USHORT:="UShort",_INT:="Int",_UINT:="UInt"
-    ,_INT64:="Int64",_UINT64:="UInt64",_DOUBLE:="Double",_FLOAT:="Float",_CHAR:="Char",_UCHAR:="UChar"
-    ,_VOID:="PTR",_TBYTE:=A_IsUnicode?"USHORT":"UCHAR",_TCHAR:=A_IsUnicode?"USHORT":"UCHAR",_HALF_PTR:=A_PtrSize=8?"INT":"SHORT"
-    ,_UHALF_PTR:=A_PtrSize=8?"UINT":"USHORT",_BOOL:="Int",_INT32:="Int",_LONG:="Int",_LONG32:="Int",_LONGLONG:="Int64",_LONG64:="Int64"
-    ,_USN:="Int64",_HFILE:="UInt",_HRESULT:="UInt",_INT_PTR:="PTR",_LONG_PTR:="PTR",_POINTER_64:="PTR",_POINTER_SIGNED:="PTR",_SSIZE_T:="PTR"
-    ,_WPARAM:="PTR",_BOOLEAN:="UCHAR",_BYTE:="UCHAR",_COLORREF:="UInt",_DWORD:="UInt",_DWORD32:="UInt",_LCID:="UInt",_LCTYPE:="UInt"
-    ,_LGRPID:="UInt",_LRESULT:="UInt",_PBOOL:="UPTR",_PBOOLEAN:="UPTR",_PBYTE:="UPTR",_PCHAR:="UPTR",_PCSTR:="UPTR",_PCTSTR:="UPTR"
-    ,_PCWSTR:="UPTR",_PDWORD:="UPTR",_PDWORDLONG:="UPTR",_PDWORD_PTR:="UPTR",_PDWORD32:="UPTR",_PDWORD64:="UPTR",_PFLOAT:="UPTR",___int64:="Int64"
-    ,_PHALF_PTR:="UPTR",_UINT32:="UInt",_ULONG:="UInt",_ULONG32:="UInt",_DWORDLONG:="UInt64",_DWORD64:="UInt64",_ULONGLONG:="UInt64"
-    ,_ULONG64:="UInt64",_DWORD_PTR:="UPTR",_HACCEL:="UPTR",_HANDLE:="UPTR",_HBITMAP:="UPTR",_HBRUSH:="UPTR",_HCOLORSPACE:="UPTR"
-    ,_HCONV:="UPTR",_HCONVLIST:="UPTR",_HCURSOR:="UPTR",_HDC:="UPTR",_HDDEDATA:="UPTR",_HDESK:="UPTR",_HDROP:="UPTR",_HDWP:="UPTR"
-  static _HENHMETAFILE:="UPTR",_HFONT:="UPTR",_HGDIOBJ:="UPTR",_HGLOBAL:="UPTR",_HHOOK:="UPTR",_HICON:="UPTR",_HINSTANCE:="UPTR",_HKEY:="UPTR"
-    ,_HKL:="UPTR",_HLOCAL:="UPTR",_HMENU:="UPTR",_HMETAFILE:="UPTR",_HMODULE:="UPTR",_HMONITOR:="UPTR",_HPALETTE:="UPTR",_HPEN:="UPTR"
-    ,_HRGN:="UPTR",_HRSRC:="UPTR",_HSZ:="UPTR",_HWINSTA:="UPTR",_HWND:="UPTR",_LPARAM:="UPTR",_LPBOOL:="UPTR",_LPBYTE:="UPTR",_LPCOLORREF:="UPTR"
-    ,_LPCSTR:="UPTR",_LPCTSTR:="UPTR",_LPCVOID:="UPTR",_LPCWSTR:="UPTR",_LPDWORD:="UPTR",_LPHANDLE:="UPTR",_LPINT:="UPTR",_LPLONG:="UPTR"
-    ,_LPSTR:="UPTR",_LPTSTR:="UPTR",_LPVOID:="UPTR",_LPWORD:="UPTR",_LPWSTR:="UPTR",_PHANDLE:="UPTR",_PHKEY:="UPTR",_PINT:="UPTR"
-    ,_PINT_PTR:="UPTR",_PINT32:="UPTR",_PINT64:="UPTR",_PLCID:="UPTR",_PLONG:="UPTR",_PLONGLONG:="UPTR",_PLONG_PTR:="UPTR",_PLONG32:="UPTR"
-    ,_PLONG64:="UPTR",_POINTER_32:="UPTR",_POINTER_UNSIGNED:="UPTR",_PSHORT:="UPTR",_PSIZE_T:="UPTR",_PSSIZE_T:="UPTR",_PSTR:="UPTR"
-    ,_PTBYTE:="UPTR",_PTCHAR:="UPTR",_PTSTR:="UPTR",_PUCHAR:="UPTR",_PUHALF_PTR:="UPTR",_PUINT:="UPTR",_PUINT_PTR:="UPTR",_PUINT32:="UPTR"
-    ,_PUINT64:="UPTR",_PULONG:="UPTR",_PULONGLONG:="UPTR",_PULONG_PTR:="UPTR",_PULONG32:="UPTR",_PULONG64:="UPTR",_PUSHORT:="UPTR"
-    ,_PVOID:="UPTR",_PWCHAR:="UPTR",_PWORD:="UPTR",_PWSTR:="UPTR",_SC_HANDLE:="UPTR",_SC_LOCK:="UPTR",_SERVICE_STATUS_HANDLE:="UPTR"
-  static _SIZE_T:="UPTR",_UINT_PTR:="UPTR",_ULONG_PTR:="UPTR",_ATOM:="Ushort",_LANGID:="Ushort",_WCHAR:="Ushort",_WORD:="UShort",_USAGE:="UShort"
-
-  ; Following is used internally only to simplify setting field helpers
-  ; the corresponding key can be set to invalid type (for string integer and vice versa) to set default if necessary, e.g. ___InitField(N,"")
-  ___InitField(_this,N,offset=" ",encoding=0,AHKType=0,isptr=" ",type=0,arrsize=0,memory=0){ ; N = Name of field
-    static _prefixes_:={offset:"`b",isptr:"`r",AHKType:"`n",type:"`t",encoding:"`f",memory:"`v",arrsize:" "}
-          ,_testtype_:={offset:"integer",isptr:"integer",AHKType:"string",type:"string",encoding:"string",arrsize:"integer"}
-          ,_default_:={offset:0,isptr:0,AHKType:"UInt",type:"UINT",encoding:"CP0",memory:"",arrsize:1}
-    for _key_,_value_ in _prefixes_
-    {
-      _typevalid_:=0
-      If (_testtype_[_key_]="Integer"){
-        If %_key_% is integer
-          useDefault:=1,_typevalid_:=1
-        else if !_this.HasKey(_value_ N)
-          useDefault:=1
-      } else {
-        If %_key_% is not integer
-          useDefault:=1,_typevalid_:=1
-        else if !_this.HasKey(_value_ N)
-          useDefault:=1
-      }
-      If (useDefault) ; item does not exist or user supplied a valid type
-        If (_key_="encoding")
-          _this[_value_ N]:=_typevalid_?(InStr(",LPTSTR,LPCTSTR,TCHAR,","," %_key_% ",")?(A_IsUnicode?"UTF-16":"CP0")
-                                        :InStr(",LPWSTR,LPCWSTR,WCHAR,","," %_key_% ",")?"UTF-16":"CP0")
-                                      :_default_[_key_]
-        else {
-          _this[_value_ N]:=_typevalid_?%_key_%:_default_[_key_]
-         }
-    }
-  }
-
-  ; Struct Contstructor
-  ; Memory, offset and definitions are saved in following character + given key/name
-  ;   `a = Allocated Memory
-  ;   `b = Byte Offset (related to struct address)
-  ;   `f = Format (encoding for string data types)
-  ;   `n = New data type (AHK data type)
-  ;   `r = Is Pointer (requred for __GET and __SET)
-  ;   `t = Type (data type, also when it is name of a Structure it is used to resolve structure pointers dynamically
-  ;   `v = Memory used to save string and pointer memory
-  __NEW(_TYPE_,_pointer_=0,_init_=0){
-    static _base_:={__GET:_Struct.___GET,__SET:_Struct.___SET,__SETPTR:_Struct.___SETPTR,__Clone:_Struct.___Clone,__NEW:_Struct.___NEW
-          ,IsPointer:_Struct.IsPointer,Offset:_Struct.Offset,Type:_Struct.Type,AHKType:_Struct.AHKType,Encoding:_Struct.Encoding
-          ,Capacity:_Struct.Capacity,Alloc:_Struct.Alloc,Size:_Struct.Size,SizeT:_Struct.SizeT,Print:_Struct.Print,ToObj:_Struct.ToObj}
-		local _,_ArrType_,_ArrName_:="",_ArrSize_,_align_total_,_defobj_,_IsPtr_,_key_,_LF_,_LF_BKP_,_match_,_offset_:=""
-			,_struct_,_StructSize_,_total_union_size_,_union_,_union_size_,_value_,_mod_,_max_size_,_in_struct_,_struct_align_
-
-		If (RegExMatch(_TYPE_,"^[\w\d\._]+$") && !_Struct.HasKey(_TYPE_)){ ; structures name was supplied, resolve to global var and run again
-      If InStr(_TYPE_,"."){ ;check for object that holds structure definition
-        Loop,Parse,_TYPE_,.
-          If A_Index=1
-            _defobj_:=%A_LoopField%
-          else _defobj_:=_defobj_[A_LoopField]
-        _TYPE_:=_defobj_
-      } else _TYPE_:=%_TYPE_%,_defobj_:=""
-    } else _defobj_:=""
-    ; If a pointer is supplied, save it in key [""] else reserve and zero-fill memory + set pointer in key [""]
-    If (_pointer_ && !IsObject(_pointer_))
-      this[""] := _pointer_,this["`a"]:=0,this["`a`a"]:=sizeof(_TYPE_)
-    else
-      this._SetCapacity("`a",_StructSize_:=sizeof(_TYPE_)) ; Set Capacity in key ["`a"]
-      ,this[""]:=this._GetAddress("`a") ; Save pointer in key [""]
-      ,DllCall("RtlZeroMemory","UPTR",this[""],"UInt",this["`a`a"]:=_StructSize_) ; zero-fill memory
-    ; C/C++ style structure definition, convert it
-    If InStr(_TYPE_,"`n") {
-      _struct_:=[] ; keep track of structures (union is just removed because {} = union, struct{} = struct
-      _union_:=0   ; init to 0, used to keep track of union depth
-      Loop,Parse,_TYPE_,`n,`r`t%A_Space%%A_Tab% ; Parse each line
-      {
-        _LF_:=""
-        Loop,Parse,A_LoopField,`,`;,`t%A_Space%%A_Tab% ; Parse each item
-        {
-          If RegExMatch(A_LoopField,"^\s*//") ;break on comments and continue main loop
-              break
-          If (A_LoopField){ ; skip empty lines
-              If (!_LF_ && _ArrType_:=RegExMatch(A_LoopField,"[\w\d_#@]\s+[\w\d_#@]")) ; new line, find out data type and save key in _LF_ Data type will be added later
-                _LF_:=RegExReplace(A_LoopField,"[\w\d_#@]\K\s+.*$")
-              If Instr(A_LoopField,"{"){ ; Union, also check if it is a structure
-                _union_++,_struct_.Insert(_union_,RegExMatch(A_LoopField,"i)^\s*struct\s*\{"))
-              } else If InStr(A_LoopField,"}") ; end of union/struct
-                _offset_.="}"
-              else { ; not starting or ending struct or union so add definitions and apply Data Type.
-                If _union_ ; add { or struct{
-                    Loop % _union_
-                      _ArrName_.=(_struct_[A_Index]?"struct":"") "{"
-                _offset_.=(_offset_ ? "," : "") _ArrName_ ((_ArrType_ && A_Index!=1)?(_LF_ " "):"") RegExReplace(A_LoopField,"\s+"," ")
-                ,_ArrName_:="",_union_:=0
-              }
-          }
-        }
-      }
-      _TYPE_:=_offset_
-    }
-
-    _offset_:=0
-    ,_union_:=[]                 ; keep track of union level, required to reset offset after union is parsed
-    ,_struct_:=[]                ; for each union level keep track if it is a structure (because here offset needs to increase
-    ,_union_size_:=[]            ; keep track of highest member within the union or structure, used to calculate new offset after union
-    ,_struct_align_:=[]          ; keep track of alignment before structure
-    ,_total_union_size_:=0       ; used in combination with above, each loop the total offset is updated if current data size is higher
-    ,_align_total_:=0			; used to calculate alignment for total size of structure
-	,_in_struct_:=1
-
-    ,this["`t"]:=0,this["`r"]:=0 ; will identify a Structure Pointer without members
-
-    ; Parse given structure definition and create struct members
-    ; User structures will be resolved by recrusive calls (!!! a structure must be a global variable)
-    Loop,Parse,_TYPE_,`,`; ;,%A_Space%%A_Tab%`n`r
-    {
-      _in_struct_+=StrLen(A_LoopField)+1
-      If ("" = _LF_ := trim(A_LoopField,A_Space A_Tab "`n`r"))
-        continue
-      _LF_BKP_:=_LF_ ;to check for ending brackets = union,struct
-      _IsPtr_:=0
-      ; Check for STARTING union and set union helpers
-       While (_match_:=RegExMatch(_LF_,"i)^(struct|union)?\s*\{\K"))
-      ; correct offset for union/structure, sizeof_maxsize returns max size of union or structure
-        _max_size_:=sizeof_maxsize(SubStr(_TYPE_,_in_struct_-StrLen(A_LoopField)-1+(StrLen(_LF_BKP_)-StrLen(_LF_))))
-        ,_union_.Insert(_offset_+=(_mod_:=Mod(_offset_,_max_size_))?Mod(_max_size_-_mod_,_max_size_):0)
-        ,_union_size_.Insert(0)
-        ,_struct_align_.Insert(_align_total_>_max_size_?_align_total_:_max_size_)
-        ,_struct_.Insert(RegExMatch(_LF_,"i)^struct\s*\{")?(1,_align_total_:=0):0)
-        ,_LF_:=SubStr(_LF_,_match_)
-
-      StringReplace,_LF_,_LF_,},,A ;remove all closing brackets (these will be checked later)
-
-      ; Check if item is a pointer and remove * for further processing, separate key will store that information
-      While % (InStr(_LF_,"*")){
-        StringReplace,_LF_,_LF_,*
-        _IsPtr_:=A_Index
-      }
-      ; Split off data type, name and size (only data type is mandatory)
-      RegExMatch(_LF_,"^(?<ArrType_>[\w\d\._]+)?\s*(?<ArrName_>[\w\d_]+)?\s*\[?(?<ArrSize_>\d+)?\]?\s*\}*\s*$",_)
-      If (!_ArrName_ && !_ArrSize_){
-        If RegExMatch(_TYPE_,"^\**" _ArrType_ "\**$"){
-          _Struct.___InitField(this,"",0,_ArrType_,_IsPtr_?"PTR":_Struct.HasKey("_" _ArrType_)?_Struct["_" _ArrType_]:"PTR",_IsPtr_,_ArrType_)
-          this.base:=_base_
-          If (IsObject(_init_)||IsObject(_pointer_)){ ; Initialization of structures members, e.g. _Struct(_RECT,{left:10,right:20})
-            for _key_,_value_ in IsObject(_init_)?_init_:_pointer_
-            {
-              If !this["`r"]{ ; It is not a pointer, assign value
-                If InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR,","," this["`t" _key_] ",")
-                  this.Alloc(_key_,StrLen(_value_)*(InStr(".LPWSTR,LPCWSTR,","," this["`t"] ",")||(InStr(",LPTSTR,LPCTSTR,","," this["`t" _key_] ",")&&A_IsUnicode)?2:1))
-                if InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR,CHAR,TCHAR,WCHAR,","," this["`t" _key_] ",")
-                  this[_key_]:=_value_
-                else
-                  this[_key_] := _value_
-              }else if (_value_<>"") ; It is not empty
-                If _value_ is integer ; It is a new pointer
-                  this[_key_][""]:=_value_
-            }
-          }
-          Return this ;:= new _Struct(%_ArrType_%,_pointer_)   ;only Data type was supplied, object/structure has got no members/keys
-        } else
-          _ArrName_:=_ArrType_,_ArrType_:="UInt"
-      }
-      If InStr(_ArrType_,"."){ ;check for object that holds structure definition
-        Loop,Parse,_ArrType_,.
-          If A_Index=1
-            _defobj_:=%A_LoopField%
-          else _defobj_:=_defobj_[A_LoopField]
-      }
-      if (!_IsPtr_ && !_Struct.HasKey(_ArrType_)){  ; _ArrType_ not found resolve to global variable (must contain struct definition)
-        if (sizeof(_defobj_?_defobj_:%_ArrType_%,0,_align_total_) && mod:=Mod(_offset_,_align_total_))
-          _offset_+=Mod(_align_total_-_mod_,_align_total_)
-        _Struct.___InitField(this,_ArrName_,_offset_,_ArrType_,0,0,_ArrType_,_ArrSize_)
-        ; update current union size
-        If (_uix_:=_union_.MaxIndex()) && (_max_size_:=_offset_ + sizeof(_defobj_?_defobj_:%_ArrType_%) - _union_[_uix_])>_union_size_[_uix_]
-          _union_size_[_uix_]:=_max_size_
-        _max_size:=0
-        ; if not a union or a union + structure then offset must be moved (when structure offset will be reset below
-        If (!_uix_||_struct_[_struct_.MaxIndex()])
-          _offset_+=this[" " _ArrName_]*sizeof(_defobj_?_defobj_:%_ArrType_%) ; move offset
-        ;Continue
-      } else {
-        If ((_IsPtr_ || _Struct.HasKey(_ArrType_)))
-          _offset_+=(_mod_:=Mod(_offset_,_max_size_:=_IsPtr_?A_PtrSize:_Struct[_ArrType_]))=0?0:(_IsPtr_?A_PtrSize:_Struct[_ArrType_])-_mod_
-          ,_align_total_:=_max_size_>_align_total_?_max_size_:_align_total_
-          ,_Struct.___InitField(this,_ArrName_,_offset_,_ArrType_,_IsPtr_?"PTR":_Struct.HasKey(_ArrType_)?_Struct["_" _ArrType_]:_ArrType_,_IsPtr_,_ArrType_,_ArrSize_)
-        ; update current union size
-        If (_uix_:=_union_.MaxIndex()) && (_max_size_:=_offset_ + _Struct[this["`n" _ArrName_]] - _union_[_uix_])>_union_size_[_uix_]
-          _union_size_[_uix_]:=_max_size_
-        _max_size_:=0
-        ; if not a union or a union + structure then offset must be moved (when structure offset will be reset below
-        If (!_uix_||_struct_[_uix_])
-          _offset_+=_IsPtr_?A_PtrSize:(_Struct.HasKey(_ArrType_)?_Struct[_ArrType_]:%_ArrType_%)*this[" " _ArrName_]
-      }
-      ; Check for ENDING union and reset offset and union helpers
-      While (SubStr(_LF_BKP_,0)="}"){
-        If (!_uix_:=_union_.MaxIndex()){
-          MsgBox,0, Incorrect structure, missing opening braket {`nProgram will exit now `n%_TYPE_%
-          ExitApp
-        } ; Increase total size of union/structure if necessary
-        ; reset offset and align because we left a union or structure
-        if (_uix_>1 && _struct_[_uix_-1]){
-          if (_mod_:=Mod(_offset_,_struct_align_[_uix_]))
-          _offset_+=Mod(_struct_align_[_uix_]-_mod_,_struct_align_[_uix_])
-        } else _offset_:=_union_[_uix_]
-        if (_struct_[_uix_]&&_struct_align_[_uix_]>_align_total_)
-          _align_total_ := _struct_align_[_uix_]
-        ; Increase total size of union/structure if necessary
-        _total_union_size_ := _union_size_[_uix_]>_total_union_size_?_union_size_[_uix_]:_total_union_size_
-        ,_union_._Remove(),_struct_._Remove(),_union_size_._Remove(),_struct_align_.Remove(),_LF_BKP_:=SubStr(_LF_BKP_,1,StrLen(_LF_BKP_)-1) ; remove latest items
-        If (_uix_=1){ ; leaving top union, add offset
-          if (_mod_:=Mod(_total_union_size_,_align_total_))
-			_total_union_size_ += Mod(_align_total_-_mod_,_align_total_)
-          _offset_+=_total_union_size_,_total_union_size_:=0
-        }
-      }
-    }
-	this.base:=_base_ ; apply new base which uses below functions and uses ___GET for __GET and ___SET for __SET
-    If (IsObject(_init_)||IsObject(_pointer_)){ ; Initialization of structures members, e.g. _Struct(_RECT,{left:10,right:20})
-      for _key_,_value_ in IsObject(_init_)?_init_:_pointer_
-      {
-        If !this["`r" _key_]{ ; It is not a pointer, assign value
-          If InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR,","," this["`t" _key_] ",")
-            this.Alloc(_key_,StrLen(_value_)*(InStr(".LPWSTR,LPCWSTR,","," this["`t"] ",")||(InStr(",LPTSTR,LPCTSTR,","," this["`t" _key_] ",")&&A_IsUnicode)?2:1))
-          if InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR,CHAR,TCHAR,WCHAR,","," this["`t" _key_] ",")
-            this[_key_]:=_value_
-          else
-            this[_key_] := _value_
-        }else if (_value_<>"") ; It is not empty
-          if _value_ is integer ; It is a new pointer
-            this[_key_][""]:=_value_
-      }
-    }
-    Return this
-  }
-  ToObj(struct:=""){
-		obj:=[]
-		for k,v in struct?struct:struct:=this
-			if (Asc(k)=10)
-				If IsObject(_VALUE_:=struct[_TYPE_:=SubStr(k,2)])
-					obj[_TYPE_]:=this.ToObj(_VALUE_)
-				else obj[_TYPE_]:=_VALUE_
-		return obj
-	}
-  SizeT(_key_=""){
-    return sizeof(this["`t" _key_])
-  }
-  Size(){
-    return sizeof(this)
-  }
-  IsPointer(_key_=""){
-    return this["`r" _key_]
-  }
-  Type(_key_=""){
-    return this["`t" _key_]
-  }
-  AHKType(_key_=""){
-    return this["`n" _key_]
-  }
-  Offset(_key_=""){
-    return this["`b" _key_]
-  }
-  Encoding(_key_=""){
-    return this["`b" _key_]
-  }
-  Capacity(_key_=""){
-    return this._GetCapacity("`v" _key_)
-  }
-  Alloc(_key_="",size="",ptrsize=0){
-    If _key_ is integer
-      ptrsize:=size,size:=_key_,_key_:=""
-   If size is integer
-      SizeIsInt:=1
-    If ptrsize {
-      If (this._SetCapacity("`v" _key_,!SizeIsInt?A_PtrSize+ptrsize:size + (size//A_PtrSize)*ptrsize)="")
-        MsgBox % "Memory for pointer ." _key_ ". of size " (SizeIsInt?size:A_PtrSize) " could not be set!"
-      else {
-        DllCall("RtlZeroMemory","UPTR",this._GetAddress("`v" _key_),"UInt",this._GetCapacity("`v" _key_))
-			  If (this[" " _key_]>1){
-					ptr:=this[""] + this["`b" _key_]
-					If (this["`r" _key_] || InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR,","," this["`t" _key_] ","))
-						NumPut(ptrs:=this._GetAddress("`v" _key_),ptr+0,"PTR")
-					else if _key_
-						this[_key_,""]:=ptrs:=this._GetAddress("`v" _key_)
-					else this[""]:=ptr:=this._GetAddress("`v" _key_),ptrs:=this._GetAddress("`v" _key_)+(SizeIsInt?size:A_PtrSize)
-				} else {
-	        If (this["`r" _key_] || InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR,","," this["`t" _key_] ","))
-	          NumPut(ptr:=this._GetAddress("`v" _key_),this[""] + this["`b" _key_],"PTR")
-	        else this[""]:=ptr:=this._GetAddress("`v" _key_)
-	        ptrs:=ptr+(size?size:A_PtrSize)
-				}
-        Loop % SizeIsInt?(size//A_PtrSize):1
-          NumPut(ptrs+(A_Index-1)*ptrsize,ptr+(A_Index-1)*A_PtrSize,"PTR")
-      }
-    } else {
-      If (this._SetCapacity("`v" _key_,SizeIsInt?size:A_PtrSize)=""){
-        MsgBox % "Memory for pointer ." _key_ ". of size " (SizeIsInt?size:A_PtrSize) " could not be set!"
-      } else
-          NumPut(ptr:=this._GetAddress("`v" _key_),this[""] + this["`b" _key_],"PTR"),DllCall("RtlZeroMemory","UPTR",ptr,"UInt",SizeIsInt?size:A_PtrSize)
-    }
-    return ptr
-  }
-  ___NEW(init*){
-    this:=this.base
-    newobj := this.__Clone(1) ;clone structure and keep pointer (1), it will be changed below
-    If (init.MaxIndex() && !IsObject(init.1))
-      newobj[""] := init.1
-    else If (init.MaxIndex()>1 && !IsObject(init.2))
-      newobj[""] := init.2
-    else
-      newobj._SetCapacity("`a",_StructSize_:=sizeof(this)) ; Set Capacity in key ["`a"]
-      ,newobj[""]:=newobj._GetAddress("`a") ; Save pointer in key [""]
-      ,DllCall("RtlZeroMemory","UPTR",newobj[""],"UInt",_StructSize_) ; zero-fill memory
-    If (IsObject(init.1)||IsObject(init.2))
-      for _key_,_value_ in IsObject(init.1)?init.1:init.2
-          newobj[_key_] := _value_
-    return newobj
-  }
-
-  ; Clone structure and move pointer for new structure
-  ___Clone(offset){
-    static _base_:={__GET:_Struct.___GET,__SET:_Struct.___SET,__SETPTR:_Struct.___SETPTR,__Clone:_Struct.___Clone,__NEW:_Struct.___NEW
-          ,IsPointer:_Struct.IsPointer,Offset:_Struct.Offset,Type:_Struct.Type,AHKType:_Struct.AHKType,Encoding:_Struct.Encoding
-          ,Capacity:_Struct.Capacity,Alloc:_Struct.Alloc,Size:_Struct.Size,SizeT:_Struct.SizeT,Print:_Struct.Print,ToObj:_Struct.ToObj}
-    If offset=1
-      return this
-    newobj:={} ; new structure object
-    for _key_,_value_ in this ; copy all values/objects
-      If (_key_!="`a")
-        newobj[_key_]:=_value_ ; add key to new object and assign value
-    newobj._SetCapacity("`a",_StructSize_:=sizeof(this)) ; Set Capacity in key ["`a"]
-    ,newobj[""]:=newobj._GetAddress("`a") ; Save pointer in key [""]
-    ,DllCall("RtlZeroMemory","UPTR",newobj[""],"UInt",_StructSize_) ; zero-fill memory
-    If this["`r"]{ ; its a pointer so we need too move internal memory
-      NumPut(NumGet(this[""],"PTR")+A_PtrSize*(offset-1),newobj[""],"Ptr")
-      newobj.base:=_base_ ;assign base of _Struct
-    } else ; do not use internal memory, simply assign new pointer to new structure
-      newobj.base:=_base_,newobj[]:=this[""]+sizeof(this)*(offset-1)
-    return newobj ; return new object
-  }
-  ___GET(_key_="",p*){
-    If (_key_="")           ; Key was not given so structure[] has been called, return pointer to structure
-      Return this[""]
-		else if !(idx:=p.MaxIndex())
-			_field_:=_key_,opt:="~"
-		else {
-		  ObjInsert(p,1,_key_)
-			opt:=ObjRemove(p),_field_:=_key_:=ObjRemove(p)
-			for key_,value_ in p
-				this:=this[value_]
-		}
-    If this["`t"] ; structure without keys/members
-      _key_:="" ; set _key_ empty so items below will resolve to our structure
-    If (opt!="~"){
-      If (opt=""){
-        If _field_ is integer
-          return (this["`r"]?NumGet(this[""],"PTR"):this[""])+sizeof(this["`t"])*(_field_-1)
-        else return this["`r" _key_]?NumGet(this[""]+this["`b" _key_],"PTR"):this[""]+this["`b" _key_] ;+sizeof(this["`t" _key_])*(_field_-1)
-      } else If opt is integer
-      { ;offset to a item e.g. struct.a[100] ("Uint a[100]")
-		; MsgBox % "ja "
-        If (_Struct.HasKey("_" this["`t" _key_]) && this[" " _key_]>1) {
-				  If (InStr( ",CHAR,UCHAR,TCHAR,WCHAR," , "," this["`t" _key_] "," )){  ; StrGet 1 character only
-					Return StrGet(this[""]+this["`b" _key_]+(opt-1)*sizeof(this["`t" _key_]),1,this["`f" _key_])
-				  } else if InStr( ",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR," , "," this["`t" _key_] "," ){ ; StrGet string
-					Return StrGet(NumGet(this[""]+this["`b" _key_]+(opt-1)*A_PtrSize,"PTR"),this["`f" _key_])
-				  } else {
-					Return NumGet(this[""]+this["`b" _key_]+(opt-1)*sizeof(this["`t" _key_]),this["`n" _key_])
-				  }
-				} else Return new _Struct(this["`t" _key_],this[""]+this["`b" _key_]+(opt-1)*sizeof(this["`t" _key_]))
-      } else
-        return this[_key_][opt]
-    } else If _field_ is integer
-    { ; array access (must be listed first because otherwise this["`r" _key_] cannot be resolved
-      If (_key_){ ; Offset for item
-        return this.__Clone(_field_)
-      } else if this["`r"] {
-        Pointer:=""
-        Loop % (this["`r"]-1) ; dip into one step and return a new structure
-          pointer.="*"
-        If pointer
-          Return new _Struct(pointer this["`t"],NumGet(this[""],"PTR")+A_PtrSize*(_field_-1))
-        else Return new _Struct(pointer this["`t"],NumGet(this[""],"PTR")+sizeof(this["`t"])*(_field_-1)).1
-      } else if _Struct.HasKey("_" this["`t"]) {
-        ; If this[" "]
-          ; Return new _Struct(this["`t"],this[""])
-        ; else
-				If (InStr( ",CHAR,UCHAR,TCHAR,WCHAR," , "," this["`t"] "," )){  ; StrGet 1 character only
-          Return StrGet(this[""]+sizeof(this["`t"])*(_field_-1),1,this["`f"])
-        } else if InStr(",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR," , "," this["`t"] "," ){ ; StrGet string
-					Return StrGet(NumGet(this[""]+A_PtrSize*(_field_-1),"PTR"),this["`f"])
-        } else { ; resolve pointer
-            Return NumGet(this[""]+sizeof(this["`t"])*(_field_-1),this["`n"])
-        }
-      } else {
-
-				; return this.__Clone(_field_)
-				; listVars
-				; MsgBox % this[""] "+" sizeof(this["`t"])*(_field_-1) "-" this["`t"]
-        Return new _Struct(this["`t"],this[""]+sizeof(this["`t"])*(_field_-1))
-      }
-    } else If this["`r" _key_] { ;pointer
-      Pointer:=""
-      Loop % (this["`r" _key_]-1) ; dip into one step and return a new structure
-          pointer.="*"
-      If (_key_=""){
-        return this[1][_field_]
-      } else {
-        Return new _Struct(pointer this["`t" _key_],NumGet(this[""]+this["`b" _key_],"PTR"))
-      }
-    } else if _Struct.HasKey("_" this["`t" _key_]) { ; default data type, not pointer
-      If (this[" " _key_]>1)
-        Return new _Struct(this["`t" _key_],this[""] + this["`b" _key_])
-      else If (InStr( ",CHAR,UCHAR,TCHAR,WCHAR," , "," this["`t" _key_] "," )){  ; StrGet 1 character only
-        Return StrGet(this[""]+this["`b" _key_],1,this["`f" _key_])
-      } else if InStr( ",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR," , "," this["`t" _key_] "," ){ ; StrGet string
-        Return StrGet(NumGet(this[""]+this["`b" _key_],"PTR"),this["`f" _key_])
-      } else {
-        Return NumGet(this[""]+this["`b" _key_],this["`n" _key_])
-      }
-    } else { ; the field is a non pointer structure
-      Return new _Struct(this["`t" _key_],this[""]+this["`b" _key_])
-    }
-  }
-  ___SET(_key_,p*){ ;="",_value_=-0x8000000000000000 ,opt="~"){
-    If !(idx:=p.MaxIndex()) ; Set new Pointer, here a value was assigned e.g. struct[]:=&var
-      return this[""] :=_key_,this._SetCapacity("`a",0) ; free internal memory, it will not be used anymore
-    else if (idx=1)
-			_value_:=p.1,opt:="~"
-		else if (idx>1){
-      ObjInsert(p,1,_key_)
-			If (p[idx]="")
-				opt:=ObjRemove(p),_value_:=ObjRemove(p),_key_:=ObjRemove(p)
-      else _value_:=ObjRemove(p),_key_:=ObjRemove(p),opt:="~"
-			for key_,value_ in p
-				this:=this[value_]
-    }
-    If this["`t"] ; structure without members
-      _field_:=_key_,_key_:="" ; set _key_ empty so it will resolve to our structure
-    else _field_:=_key_
-    If this["`r" _key_] { ; Pointer
-			If opt is integer
-        return NumPut(opt,this[""] + this["`b" _key_],"PTR")
-      else if this.HasKey("`t" _key_) {
-        Pointer:=""
-        Loop % (this["`r" _key_]-1) ; dip into one step and return a new structure
-          pointer.="*"
-        If _key_
-          Return (new _Struct(pointer this["`t" _key_],NumGet(this[""] + this["`b" _key_],"PTR"))).1:=_value_
-        else Return (new _Struct(pointer this["`t"],NumGet(this[""],"PTR")))[_field_]:=_value_
-      } else If _field_ is Integer
-       if (_key_="") ; replace this for the operation
-        _this:=this,this:=this.__Clone(_Field_)
-      If InStr( ",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR," , "," this["`t" _key_] "," )
-        StrPut(_value_,NumGet(NumGet(this[""]+this["`b" _key_],"PTR"),"PTR"),this["`f" _key_]) ; StrPut char to addr+A_PtrSize
-      else if InStr( ",TCHAR,CHAR,UCHAR,WCHAR," , "," this["`t" _key_] "," ){ ; same as above but for 1 Character only
-        StrPut(_value_,NumGet(this[""]+this["`b" _key_],"PTR"),this["`f" _key_]) ; StrPut char to addr
-      } else
-        NumPut(_value_,NumGet(this[""]+this["`b" _key_],"PTR"),this["`n" _key_])
-      If _field_ is integer ; restore this after operation
-        this:=_this
-    } else if (RegExMatch(_field_,"^\d+$") && _key_="") {
-      if InStr( ",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR," , "," this["`t"] "," ){
-        StrPut(_value_,NumGet(this[""]+A_PtrSize*(_field_-1),"PTR"),this["`f"]) ; StrPut string to addr
-      } else if InStr( ",TCHAR,CHAR,UCHAR,WCHAR," , "," this["`t" _key_] "," ){
-        StrPut(_value_,this[""] + sizeof(this["`t"])*(_field_-1),this["`f"])
-      } else
-        NumPut(_value_,this[""] + sizeof(this["`t"])*(_field_-1),this["`n"]) ; NumPut new value to key
-    } else if opt is integer
-    {
-      return NumPut(opt,this[""] + this["`b" _key_],"PTR")
-    } else if InStr( ",LPSTR,LPCSTR,LPTSTR,LPCTSTR,LPWSTR,LPCWSTR," , "," this["`t" _key_] "," ){
-      StrPut(_value_,NumGet(this[""] + this["`b" _key_],"PTR"),this["`f" _key_]) ; StrPut string to addr
-    } else if InStr( ",TCHAR,CHAR,UCHAR,WCHAR," , "," this["`t" _key_] "," ){
-      StrPut(_value_,this[""] + this["`b" _key_],this["`f" _key_]) ; StrPut character key
-    } else
-      NumPut(_value_,this[""]+this["`b" _key_],this["`n" _key_]) ; NumPut new value to key
-    Return _value_
-  }
-}
-
-
-/*
-#Persistent
-SetBatchLines,-1
-SetWinDelay,-1
-OnExit, GuiClose
-
-WatchFolders=C:\Temp*|%A_Temp%*|%A_Desktop%|%A_DesktopCommon%|%A_MyDocuments%*|%A_ScriptDir%|%A_WinDir%*
-Gui,+Resize
-Gui,Add,ListView,r10 w800 vWatchingDirectoriesList HWNDhList1 gShow,WatchingDirectories|WatchingSubdirs
-Loop,Parse,WatchFolders,|
-   WatchDirectory(A_LoopField,"ReportChanges")
-   ,LV_Add("",SubStr(A_LoopField,0)="*" ? (SubStr(A_LoopField,1,StrLen(A_LoopField)-1)) : A_LoopField
-          ,SubStr(A_LoopField,0)="*" ? 1 : 0)
-LV_ModifyCol(1,"AutoHdr")
-Gui,Add,ListView,r30 w800 vChangesList HWNDhList2 gShow,Time|FileChangedFrom - Double click to show in Explorer|FileChangedTo - Double click to show in Explorer
-Gui,Add,Button,gAdd Default,Watch new directory
-Gui,Add,Button,gDelete x+1,Stop watching all directories
-Gui,Add,Button,gClear x+1,Clear List
-Gui,Add,StatusBar,,Changes Registered
-Gui, Show
-
-Return
-
-Clear:
-Gui,ListView, ChangesList
-LV_Delete()
-Return
-
-Delete:
-WatchDirectory("")
-Gui,ListView, WatchingDirectoriesList
-LV_Delete()
-Gui,ListView, ChangesList
-TotalChanges:=0
-SB_SetText("Changes Registered")
-Return
-
-Show:
-If A_GuiEvent!=DoubleClick
-   Return
-Gui,ListView,%A_GuiControl%
-LV_GetText(file,A_EventInfo,2)
-If file=
-   LV_GetText(file,A_EventInfo,3)
-Run,% "explorer.exe /e`, /n`, /select`," . file
-Return
-
-Add:
-Gui,+OwnDialogs
-dir=
-FileSelectFolder,dir,,3,Select directory to watch for
-If !dir
-   Return
-SetTimer,SetMsgBoxButtons,-10
-MsgBox, 262146,Add directory,Would you like to watch for changes in:`n%dir%
-
-Gui,ListView, WatchingDirectoriesList
-IfMsgBox Retry
-   WatchDirectory(dir "*"),LV_Add("",dir,1)
-IfMsgBox Ignore
-   WatchDirectory(dir),LV_Add("",dir,0)
-LV_ModifyCol(1,"AutoHdr")
-Gui,ListView, ChangesList
-Return
-
-SetMsgBoxButtons:
-   WinWait, ahk_class #32770
-   WinActivate
-   WinWaitActive
-   ControlSetText,Button2,&Incl. subdirs, ahk_class #32770
-   ControlSetText,Button3,&Excl. subdirs, ahk_class #32770
-Return
-
-ReportChanges(from,to){
-   global TotalChanges
-   Gui,ListView, ChangesList
-   LV_Insert(1,"",A_Hour ":" A_Min ":" A_Sec ":" A_MSec,from,to)
-   LV_ModifyCol()
-   LV_ModifyCol(1,"AutoHdr"),LV_ModifyCol(2,"AutoHdr")
-   TotalChanges++
-   SB_SetText("Changes Registered " . TotalChanges)
-}
-
-GuiClose:
-WatchDirectory("") ;Stop Watching Directory = delete all directories
-ExitApp
-END:
-return
-*/
-WatchDirectory(p*){
-   ;Structures
-   static FILE_NOTIFY_INFORMATION:="DWORD NextEntryOffset,DWORD Action,DWORD FileNameLength,WCHAR FileName[1]"
-   static OVERLAPPED:="ULONG_PTR Internal,ULONG_PTR InternalHigh,{struct{DWORD offset,DWORD offsetHigh},PVOID Pointer},HANDLE hEvent"
-   ;Variables
-   static running,sizeof_FNI=65536,temp1:=VarSetCapacity(nReadLen,8),WatchDirectory:=RegisterCallback("WatchDirectory","F",0,0)
-   static timer,ReportToFunction,LP,temp2:=VarSetCapacity(LP,(260)*(A_PtrSize/2),0)
-   static @:=Object(),reconnect:=Object(),#:=Object(),DirEvents,StringToRegEx="\\\|.\.|+\+|[\[|{\{|(\(|)\)|^\^|$\$|?\.?|*.*"
-   ;ReadDirectoryChanges related
-   static FILE_NOTIFY_CHANGE_FILE_NAME=0x1,FILE_NOTIFY_CHANGE_DIR_NAME=0x2,FILE_NOTIFY_CHANGE_ATTRIBUTES=0x4
-         ,FILE_NOTIFY_CHANGE_SIZE=0x8,FILE_NOTIFY_CHANGE_LAST_WRITE=0x10,FILE_NOTIFY_CHANGE_CREATION=0x40
-         ,FILE_NOTIFY_CHANGE_SECURITY=0x100
-   static FILE_ACTION_ADDED=1,FILE_ACTION_REMOVED=2,FILE_ACTION_MODIFIED=3
-         ,FILE_ACTION_RENAMED_OLD_NAME=4,FILE_ACTION_RENAMED_NEW_NAME=5
-   static OPEN_EXISTING=3,FILE_FLAG_BACKUP_SEMANTICS=0x2000000,FILE_FLAG_OVERLAPPED=0x40000000
-         ,FILE_SHARE_DELETE=4,FILE_SHARE_WRITE=2,FILE_SHARE_READ=1,FILE_LIST_DIRECTORY=1
-   If p.MaxIndex(){
-      If (p.MaxIndex()=1 && p.1=""){
-         for i,folder in #
-            DllCall("CloseHandle","Uint",@[folder].hD),DllCall("CloseHandle","Uint",@[folder].O.hEvent)
-            ,@.Remove(folder)
-         #:=Object()
-         DirEvents:=new _Struct("HANDLE[1000]")
-         DllCall("KillTimer","Uint",0,"Uint",timer)
-         timer=
-         Return 0
-      } else {
-         if p.2
-            ReportToFunction:=p.2
-         If !IsFunc(ReportToFunction)
-            Return -1 ;DllCall("MessageBox","Uint",0,"Str","Function " ReportToFunction " does not exist","Str","Error Missing Function","UInt",0)
-         RegExMatch(p.1,"^([^/\*\?<>\|""]+)(\*)?(\|.+)?$",dir)
-         if (SubStr(dir1,0)="\")
-            StringTrimRight,dir1,dir1,1
-         StringTrimLeft,dir3,dir3,1
-         If (p.MaxIndex()=2 && p.2=""){
-            for i,folder in #
-               If (dir1=SubStr(folder,1,StrLen(folder)-1))
-                  Return 0 ,DirEvents[i]:=DirEvents[#.MaxIndex()],DirEvents[#.MaxIndex()]:=0
-                           @.Remove(folder),#[i]:=#[#.MaxIndex()],#.Remove(i)
-            Return 0
-         }
-      }
-      if !InStr(FileExist(dir1),"D")
-         Return -1 ;DllCall("MessageBox","Uint",0,"Str","Folder " dir1 " does not exist","Str","Error Missing File","UInt",0)
-      for i,folder in #
-      {
-         If (dir1=SubStr(folder,1,StrLen(folder)-1) || (InStr(dir1,folder) && @[folder].sD))
-               Return 0
-         else if (InStr(SubStr(folder,1,StrLen(folder)-1),dir1 "\") && dir2){ ;replace watch
-            DllCall("CloseHandle","Uint",@[folder].hD),DllCall("CloseHandle","Uint",@[folder].O.hEvent),reset:=i
-         }
-      }
-      LP:=SubStr(LP,1,DllCall("GetLongPathName","Str",dir1,"Uint",&LP,"Uint",VarSetCapacity(LP))) "\"
-      If !(reset && @[reset]:=LP)
-         #.Insert(LP)
-      @[LP,"dir"]:=LP
-      @[LP].hD:=DllCall("CreateFile","Str",StrLen(LP)=3?SubStr(LP,1,2):LP,"UInt",0x1,"UInt",0x1|0x2|0x4
-                  ,"UInt",0,"UInt",0x3,"UInt",0x2000000|0x40000000,"UInt",0)
-      @[LP].sD:=(dir2=""?0:1)
-
-      Loop,Parse,StringToRegEx,|
-         StringReplace,dir3,dir3,% SubStr(A_LoopField,1,1),% SubStr(A_LoopField,2),A
-      StringReplace,dir3,dir3,%A_Space%,\s,A
-      Loop,Parse,dir3,|
-      {
-         If A_Index=1
-            dir3=
-         pre:=(SubStr(A_LoopField,1,2)="\\"?2:0)
-         succ:=(SubStr(A_LoopField,-1)="\\"?2:0)
-         dir3.=(dir3?"|":"") (pre?"\\\K":"")
-               . SubStr(A_LoopField,1+pre,StrLen(A_LoopField)-pre-succ)
-               . ((!succ && !InStr(SubStr(A_LoopField,1+pre,StrLen(A_LoopField)-pre-succ),"\"))?"[^\\]*$":"") (succ?"$":"")
-      }
-      @[LP].FLT:="i)" dir3
-      @[LP].FUNC:=ReportToFunction
-      @[LP].CNG:=(p.3?p.3:(0x1|0x2|0x4|0x8|0x10|0x40|0x100))
-      If !reset {
-         @[LP].SetCapacity("pFNI",sizeof_FNI)
-         @[LP].FNI:=new _Struct(FILE_NOTIFY_INFORMATION,@[LP].GetAddress("pFNI"))
-         @[LP].O:=new _Struct(OVERLAPPED)
-      }
-      @[LP].O.hEvent:=DllCall("CreateEvent","Uint",0,"Int",1,"Int",0,"UInt",0)
-      If (!DirEvents)
-         DirEvents:=new _Struct("HANDLE[1000]")
-      DirEvents[reset?reset:#.MaxIndex()]:=@[LP].O.hEvent
-      DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[""],"UInt",sizeof_FNI
-               ,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[""],"UInt",0)
-      Return timer:=DllCall("SetTimer","Uint",0,"UInt",timer,"Uint",50,"UInt",WatchDirectory)
-   } else {
-      Sleep, 0
-      for LP in reconnect
-      {
-         If (FileExist(@[LP].dir) && reconnect.Remove(LP)){
-            DllCall("CloseHandle","Uint",@[LP].hD)
-            @[LP].hD:=DllCall("CreateFile","Str",StrLen(@[LP].dir)=3?SubStr(@[LP].dir,1,2):@[LP].dir,"UInt",0x1,"UInt",0x1|0x2|0x4
-                  ,"UInt",0,"UInt",0x3,"UInt",0x2000000|0x40000000,"UInt",0)
-            DllCall("ResetEvent","UInt",@[LP].O.hEvent)
-            DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[""],"UInt",sizeof_FNI
-               ,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[""],"UInt",0)
-         }
-      }
-      if !( (r:=DllCall("MsgWaitForMultipleObjectsEx","UInt",#.MaxIndex()
-               ,"UInt",DirEvents[""],"UInt",0,"UInt",0x4FF,"UInt",6))>=0
-               && r<#.MaxIndex() ){
-         return
-      }
-      DllCall("KillTimer", UInt,0, UInt,timer)
-      LP:=#[r+1],DllCall("GetOverlappedResult","UInt",@[LP].hD,"UInt",@[LP].O[""],"UIntP",nReadLen,"Int",1)
-      If (A_LastError=64){ ; ERROR_NETNAME_DELETED - The specified network name is no longer available.
-         If !FileExist(@[LP].dir) ; If folder does not exist add to reconnect routine
-            reconnect.Insert(LP,LP)
-      } else
-         Loop {
-            FNI:=A_Index>1?(new _Struct(FILE_NOTIFY_INFORMATION,FNI[""]+FNI.NextEntryOffset)):(new _Struct(FILE_NOTIFY_INFORMATION,@[LP].FNI[""]))
-            If (FNI.Action < 0x6){
-               FileName:=@[LP].dir . StrGet(FNI.FileName[""],FNI.FileNameLength/2,"UTF-16")
-               If ((FNI.Action=FILE_ACTION_RENAMED_OLD_NAME && FileFromOptional:=FileName)
-								|| @[LP].FLT="" || RegExMatch(FileName,@[LP].FLT) || RegExMatch(FileFrom,@[LP].FLT) || InStr(FileExist(FileName),"D"))
-                  If (FNI.Action=FILE_ACTION_ADDED){
-                     FileTo:=FileName
-                  } else If (FNI.Action=FILE_ACTION_REMOVED){
-                     FileFrom:=FileName
-                  } else If (FNI.Action=FILE_ACTION_MODIFIED){
-                     FileFrom:=FileTo:=FileName
-                  } else If (FNI.Action=FILE_ACTION_RENAMED_OLD_NAME){
-                     FileFrom:=FileName
-                  } else If (FNI.Action=FILE_ACTION_RENAMED_NEW_NAME){
-                     FileTo:=FileName
+;     Due to the limits of the API function WaitForMultipleObjects() you cannot watch more than MAXIMUM_WAIT_OBJECTS (64)
+;     folders simultaneously.
+; MSDN:
+;     ReadDirectoryChangesW          msdn.microsoft.com/en-us/library/aa365465(v=vs.85).aspx
+;     FILE_NOTIFY_CHANGE_FILE_NAME   = 1   (0x00000001) : Notify about renaming, creating, or deleting a file.
+;     FILE_NOTIFY_CHANGE_DIR_NAME    = 2   (0x00000002) : Notify about creating or deleting a directory.
+;     FILE_NOTIFY_CHANGE_ATTRIBUTES  = 4   (0x00000004) : Notify about attribute changes.
+;     FILE_NOTIFY_CHANGE_SIZE        = 8   (0x00000008) : Notify about any file-size change.
+;     FILE_NOTIFY_CHANGE_LAST_WRITE  = 16  (0x00000010) : Notify about any change to the last write-time of files.
+;     FILE_NOTIFY_CHANGE_LAST_ACCESS = 32  (0x00000020) : Notify about any change to the last access time of files.
+;     FILE_NOTIFY_CHANGE_CREATION    = 64  (0x00000040) : Notify about any change to the creation time of files.
+;     FILE_NOTIFY_CHANGE_SECURITY    = 256 (0x00000100) : Notify about any security-descriptor change.
+;     FILE_NOTIFY_INFORMATION        msdn.microsoft.com/en-us/library/aa364391(v=vs.85).aspx
+;     FILE_ACTION_ADDED              = 1   (0x00000001) : The file was added to the directory.
+;     FILE_ACTION_REMOVED            = 2   (0x00000002) : The file was removed from the directory.
+;     FILE_ACTION_MODIFIED           = 3   (0x00000003) : The file was modified.
+;     FILE_ACTION_RENAMED            = 4   (0x00000004) : The file was renamed (not defined by Microsoft).
+;     FILE_ACTION_RENAMED_OLD_NAME   = 4   (0x00000004) : The file was renamed and this is the old name.
+;     FILE_ACTION_RENAMED_NEW_NAME   = 5   (0x00000005) : The file was renamed and this is the new name.
+;     GetOverlappedResult            msdn.microsoft.com/en-us/library/ms683209(v=vs.85).aspx
+;     CreateFile                     msdn.microsoft.com/en-us/library/aa363858(v=vs.85).aspx
+;     FILE_FLAG_BACKUP_SEMANTICS     = 0x02000000
+;     FILE_FLAG_OVERLAPPED           = 0x40000000
+; ==================================================================================================================================
+WatchFolder(Folder, UserFunc, SubTree := False, Watch := 0x03) {
+   Static DummyObject := {Base: {__Delete: Func("WatchFolder").Bind("**END", "")}}
+   Static TimerID := "**" . A_TickCount
+   Static TimerFunc := Func("WatchFolder").Bind(TimerID, "")
+   Static MAXIMUM_WAIT_OBJECTS := 64
+   Static MAX_DIR_PATH := 260 - 12 + 1
+   Static SizeOfLongPath := MAX_DIR_PATH << !!A_IsUnicode
+   Static SizeOfFNI := 0xFFFF ; size of the FILE_NOTIFY_INFORMATION structure buffer (64 KB)
+   Static SizeOfOVL := 32     ; size of the OVERLAPPED structure (64-bit)
+   Static WatchedFolders := {}
+   Static EventArray := []
+   Static HandleArray := []
+   Static WaitObjects := 0
+   Static BytesRead := 0
+   Static Paused := False
+   ; ===============================================================================================================================
+   If (Folder = "")
+      Return False
+   SetTimer, % TimerFunc, Off
+   RebuildWaitObjects := False
+   ; ===============================================================================================================================
+   If (Folder = TimerID) { ; called by timer
+      If (ObjCount := EventArray.Length()) && !Paused {
+         ObjIndex := DllCall("WaitForMultipleObjects", "UInt", ObjCount, "Ptr", &WaitObjects, "Int", 0, "UInt", 0, "UInt")
+         While (ObjIndex >= 0) && (ObjIndex < ObjCount) {
+            FolderName := WatchedFolders[ObjIndex + 1]
+            D := WatchedFolders[FolderName]
+            If DllCall("GetOverlappedResult", "Ptr", D.Handle, "Ptr", D.OVLAddr, "UIntP", BytesRead, "Int", True) {
+               Changes := []
+               FNIAddr := D.FNIAddr
+               FNIMax := FNIAddr + BytesRead
+               OffSet := 0
+               PrevIndex := 0
+               PrevAction := 0
+               PrevName := ""
+               Loop {
+                  FNIAddr += Offset
+                  OffSet := NumGet(FNIAddr + 0, "UInt")
+                  Action := NumGet(FNIAddr + 4, "UInt")
+                  Length := NumGet(FNIAddr + 8, "UInt") // 2
+                  Name   := FolderName . "\" . StrGet(FNIAddr + 12, Length, "UTF-16")
+                  IsDir  := InStr(FileExist(Name), "D") ? 1 : 0
+                  If (Name = PrevName) {
+                     If (Action = PrevAction)
+                        Continue
+                     If (Action = 1) && (PrevAction = 2) {
+                        PrevAction := Action
+                        Changes.RemoveAt(PrevIndex--)
+                        Continue
+                     }
                   }
-									If (FNI.Action != 4 && (FileTo . FileFrom) !="")
-										@[LP].Func(FileFrom=""?FileFromOptional:FileFrom,FileTo)
-										,FileFrom:="",FileTo:="",FileFromOptional:=""
-            }
-         } Until (!FNI.NextEntryOffset || ((FNI[""]+FNI.NextEntryOffset) > (@[LP].FNI[""]+sizeof_FNI-12)))
-      DllCall("ResetEvent","UInt",@[LP].O.hEvent)
-      DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[""],"UInt",sizeof_FNI
-               ,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[""],"UInt",0)
-      timer:=DllCall("SetTimer","Uint",0,"UInt",timer,"Uint",50,"UInt",WatchDirectory)
-      Return
-   }
-   Return
-}
-
-/*
-WatchDirectory(p*){
-   global _Struct
-   ;Structures
-   static FILE_NOTIFY_INFORMATION:="DWORD NextEntryOffset,DWORD Action,DWORD FileNameLength,WCHAR FileName[1]"
-   static OVERLAPPED:="ULONG_PTR Internal,ULONG_PTR InternalHigh,{struct{DWORD offset,DWORD offsetHigh},PVOID Pointer},HANDLE hEvent"
-   ;Variables
-   static running,sizeof_FNI=65536,nReadLen:=VarSetCapacity(nReadLen,8),WatchDirectory:=RegisterCallback("WatchDirectory","F",0,0)
-   static timer,ReportToFunction,LP,nReadLen:=VarSetCapacity(LP,(260)*(A_PtrSize/2),0)
-   static @:=Object(),reconnect:=Object(),#:=Object(),DirEvents,StringToRegEx="\\\|.\.|+\+|[\[|{\{|(\(|)\)|^\^|$\$|?\.?|*.*"
-   ;ReadDirectoryChanges related
-   static FILE_NOTIFY_CHANGE_FILE_NAME=0x1,FILE_NOTIFY_CHANGE_DIR_NAME=0x2,FILE_NOTIFY_CHANGE_ATTRIBUTES=0x4
-         ,FILE_NOTIFY_CHANGE_SIZE=0x8,FILE_NOTIFY_CHANGE_LAST_WRITE=0x10,FILE_NOTIFY_CHANGE_CREATION=0x40
-         ,FILE_NOTIFY_CHANGE_SECURITY=0x100
-   static FILE_ACTION_ADDED=1,FILE_ACTION_REMOVED=2,FILE_ACTION_MODIFIED=3
-         ,FILE_ACTION_RENAMED_OLD_NAME=4,FILE_ACTION_RENAMED_NEW_NAME=5
-   static OPEN_EXISTING=3,FILE_FLAG_BACKUP_SEMANTICS=0x2000000,FILE_FLAG_OVERLAPPED=0x40000000
-         ,FILE_SHARE_DELETE=4,FILE_SHARE_WRITE=2,FILE_SHARE_READ=1,FILE_LIST_DIRECTORY=1
-   If p.MaxIndex(){
-      If (p.MaxIndex()=1 && p.1=""){
-         for i,folder in #
-            DllCall("CloseHandle","Uint",@[folder].hD),DllCall("CloseHandle","Uint",@[folder].O.hEvent)
-            ,@.Remove(folder)
-         #:=Object()
-         DirEvents:=new _Struct("HANDLE[1000]")
-         DllCall("KillTimer","Uint",0,"Uint",timer)
-         timer=
-         Return 0
-      } else {
-         if p.2
-            ReportToFunction:=p.2
-         If !IsFunc(ReportToFunction)
-            Return -1 ;DllCall("MessageBox","Uint",0,"Str","Function " ReportToFunction " does not exist","Str","Error Missing Function","UInt",0)
-         RegExMatch(p.1,"^([^/\*\?<>\|""]+)(\*)?(\|.+)?$",dir)
-         if (SubStr(dir1,0)="\")
-            StringTrimRight,dir1,dir1,1
-         StringTrimLeft,dir3,dir3,1
-         If (p.MaxIndex()=2 && p.2=""){
-            for i,folder in #
-               If (dir1=SubStr(folder,1,StrLen(folder)-1))
-                  Return 0 ,DirEvents[i]:=DirEvents[#.MaxIndex()],DirEvents[#.MaxIndex()]:=0
-                           @.Remove(folder),#[i]:=#[#.MaxIndex()],#.Remove(i)
-            Return 0
-         }
-      }
-      if !InStr(FileExist(dir1),"D")
-         Return -1 ;DllCall("MessageBox","Uint",0,"Str","Folder " dir1 " does not exist","Str","Error Missing File","UInt",0)
-      for i,folder in #
-      {
-         If (dir1=SubStr(folder,1,StrLen(folder)-1) || (InStr(dir1,folder) && @[folder].sD))
-               Return 0
-         else if (InStr(SubStr(folder,1,StrLen(folder)-1),dir1 "\") && dir2){ ;replace watch
-            DllCall("CloseHandle","Uint",@[folder].hD),DllCall("CloseHandle","Uint",@[folder].O.hEvent),reset:=i
-         }
-      }
-      LP:=SubStr(LP,1,DllCall("GetLongPathName","Str",dir1,"Uint",&LP,"Uint",VarSetCapacity(LP))) "\"
-      If !(reset && @[reset]:=LP)
-         #.Insert(LP)
-      @[LP,"dir"]:=LP
-      @[LP].hD:=DllCall("CreateFile","Str",StrLen(LP)=3?SubStr(LP,1,2):LP,"UInt",0x1,"UInt",0x1|0x2|0x4
-                  ,"UInt",0,"UInt",0x3,"UInt",0x2000000|0x40000000,"UInt",0)
-      @[LP].sD:=(dir2=""?0:1)
-
-      Loop,Parse,StringToRegEx,|
-         StringReplace,dir3,dir3,% SubStr(A_LoopField,1,1),% SubStr(A_LoopField,2),A
-      StringReplace,dir3,dir3,%A_Space%,\s,A
-      Loop,Parse,dir3,|
-      {
-         If A_Index=1
-            dir3=
-         pre:=(SubStr(A_LoopField,1,2)="\\"?2:0)
-         succ:=(SubStr(A_LoopField,-1)="\\"?2:0)
-         dir3.=(dir3?"|":"") (pre?"\\\K":"")
-               . SubStr(A_LoopField,1+pre,StrLen(A_LoopField)-pre-succ)
-               . ((!succ && !InStr(SubStr(A_LoopField,1+pre,StrLen(A_LoopField)-pre-succ),"\"))?"[^\\]*$":"") (succ?"$":"")
-      }
-      @[LP].FLT:="i)" dir3
-      @[LP].FUNC:=ReportToFunction
-      @[LP].CNG:=(p.3?p.3:(0x1|0x2|0x4|0x8|0x10|0x40|0x100))
-      If !reset {
-         @[LP].SetCapacity("pFNI",sizeof_FNI)
-         @[LP].FNI:=new _Struct(FILE_NOTIFY_INFORMATION,@[LP].GetAddress("pFNI"))
-         @[LP].O:=new _Struct(OVERLAPPED)
-      }
-      @[LP].O.hEvent:=DllCall("CreateEvent","Uint",0,"Int",1,"Int",0,"UInt",0)
-      If (!DirEvents)
-         DirEvents:=new _Struct("HANDLE[1000]")
-      DirEvents[reset?reset:#.MaxIndex()]:=@[LP].O.hEvent
-      DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[],"UInt",sizeof_FNI
-               ,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[],"UInt",0)
-      Return timer:=DllCall("SetTimer","Uint",0,"UInt",timer,"Uint",50,"UInt",WatchDirectory)
-   } else {
-      Sleep, 0
-      for LP in reconnect
-      {
-         If (FileExist(@[LP].dir) && reconnect.Remove(LP)){
-            DllCall("CloseHandle","Uint",@[LP].hD)
-            @[LP].hD:=DllCall("CreateFile","Str",StrLen(@[LP].dir)=3?SubStr(@[LP].dir,1,2):@[LP].dir,"UInt",0x1,"UInt",0x1|0x2|0x4
-                  ,"UInt",0,"UInt",0x3,"UInt",0x2000000|0x40000000,"UInt",0)
-            DllCall("ResetEvent","UInt",@[LP].O.hEvent)
-            DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[],"UInt",sizeof_FNI
-               ,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[],"UInt",0)
-         }
-      }
-      if !( (r:=DllCall("MsgWaitForMultipleObjectsEx","UInt",#.MaxIndex()
-               ,"UInt",DirEvents[],"UInt",0,"UInt",0x4FF,"UInt",6))>=0
-               && r<#.MaxIndex() ){
-         return
-      }
-      DllCall("KillTimer", UInt,0, UInt,timer)
-      LP:=#[r+1],DllCall("GetOverlappedResult","UInt",@[LP].hD,"UInt",@[LP].O[],"UIntP",nReadLen,"Int",1)
-      If (A_LastError=64){ ; ERROR_NETNAME_DELETED - The specified network name is no longer available.
-         If !FileExist(@[LP].dir) ; If folder does not exist add to reconnect routine
-            reconnect.Insert(LP,LP)
-      } else
-         Loop {
-            FNI:=A_Index>1?(new _Struct(FILE_NOTIFY_INFORMATION,FNI[]+FNI.NextEntryOffset)):(new _Struct(FILE_NOTIFY_INFORMATION,@[LP].FNI[]))
-            If (FNI.Action < 0x6){
-               FileName:=@[LP].dir . StrGet(FNI.FileName[""],FNI.FileNameLength/2,"UTF-16")
-               If (FNI.Action=FILE_ACTION_RENAMED_OLD_NAME)
-                     FileFromOptional:=FileName
-               If (@[LP].FLT="" || RegExMatch(FileName,@[LP].FLT) || FileFrom)
-                  If (FNI.Action=FILE_ACTION_ADDED){
-                     FileTo:=FileName
-                  } else If (FNI.Action=FILE_ACTION_REMOVED){
-                     FileFrom:=FileName
-                  } else If (FNI.Action=FILE_ACTION_MODIFIED){
-                     FileFrom:=FileTo:=FileName
-                  } else If (FNI.Action=FILE_ACTION_RENAMED_OLD_NAME){
-                     FileFrom:=FileName
-                  } else If (FNI.Action=FILE_ACTION_RENAMED_NEW_NAME){
-                     FileTo:=FileName
+                  If (Action = 4)
+                     PrevIndex := Changes.Push({Action: Action, OldName: Name, IsDir: 0})
+                  Else If (Action = 5) && (PrevAction = 4) {
+                     Changes[PrevIndex, "Name"] := Name
+                     Changes[PrevIndex, "IsDir"] := IsDir
                   }
-          If (FNI.Action != 4 && (FileTo . FileFrom) !="")
-                  @[LP].Func(FileFrom=""?FileFromOptional:FileFrom,FileTo)
+                  Else
+                     PrevIndex := Changes.Push({Action: Action, Name: Name, IsDir: IsDir})
+                  PrevAction := Action
+                  PrevName := Name
+               } Until (Offset = 0) || ((FNIAddr + Offset) > FNIMax)
+               If (Changes.Length() > 0)
+                  D.Func.Call(FolderName, Changes)
+               DllCall("ResetEvent", "Ptr", EventArray[D.Index])
+               DllCall("ReadDirectoryChangesW", "Ptr", D.Handle, "Ptr", D.FNIAddr, "UInt", SizeOfFNI, "Int", D.SubTree
+                                              , "UInt", D.Watch, "UInt", 0, "Ptr", D.OVLAddr, "Ptr", 0)
             }
-         } Until (!FNI.NextEntryOffset || ((FNI[]+FNI.NextEntryOffset) > (@[LP].FNI[]+sizeof_FNI-12)))
-      DllCall("ResetEvent","UInt",@[LP].O.hEvent)
-      DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[],"UInt",sizeof_FNI
-               ,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[],"UInt",0)
-      timer:=DllCall("SetTimer","Uint",0,"UInt",timer,"Uint",50,"UInt",WatchDirectory)
-      Return
+            ObjIndex := DllCall("WaitForMultipleObjects", "UInt", ObjCount, "Ptr", &WaitObjects, "Int", 0, "UInt", 0, "UInt")
+            Sleep, 0
+         }
+      }
    }
-   Return
-}
-*/
-
-
-
-
-
-
-/*
-WatchDirectory(p*){
-	;Structures
-	static FILE_NOTIFY_INFORMATION:="DWORD NextEntryOffset,DWORD Action,DWORD FileNameLength,WCHAR FileName[1]"
-	static OVERLAPPED:="ULONG_PTR Internal,ULONG_PTR InternalHigh,{{DWORD offset,DWORD offsetHigh},PVOID Pointer},HANDLE hEvent"
-	;Variables
-	static running,sizeof_FNI=65536,nReadLen:=VarSetCapacity(nReadLen,8),WatchDirectory:=RegisterCallback("WatchDirectory","F",0,0)
-	static timer,ReportToFunction,LP,nReadLen:=VarSetCapacity(LP,(260)*(A_PtrSize/2),0)
-	static @:=Object(),reconnect:=Object(),#:=Object(),DirEvents,StringToRegEx="\\\|.\.|+\+|[\[|{\{|(\(|)\)|^\^|$\$|?\.?|*.*"
-	;ReadDirectoryChanges related
-	static FILE_NOTIFY_CHANGE_FILE_NAME=0x1,FILE_NOTIFY_CHANGE_DIR_NAME=0x2,FILE_NOTIFY_CHANGE_ATTRIBUTES=0x4
-			,FILE_NOTIFY_CHANGE_SIZE=0x8,FILE_NOTIFY_CHANGE_LAST_WRITE=0x10,FILE_NOTIFY_CHANGE_CREATION=0x40
-			,FILE_NOTIFY_CHANGE_SECURITY=0x100
-	static FILE_ACTION_ADDED=1,FILE_ACTION_REMOVED=2,FILE_ACTION_MODIFIED=3
-			,FILE_ACTION_RENAMED_OLD_NAME=4,FILE_ACTION_RENAMED_NEW_NAME=5
-	static OPEN_EXISTING=3,FILE_FLAG_BACKUP_SEMANTICS=0x2000000,FILE_FLAG_OVERLAPPED=0x40000000
-			,FILE_SHARE_DELETE=4,FILE_SHARE_WRITE=2,FILE_SHARE_READ=1,FILE_LIST_DIRECTORY=1
-	If p.MaxIndex(){
-		If (p.MaxIndex()=1 && p.1=""){
-			for i,folder in #
-				DllCall("CloseHandle","Uint",@[folder].hD),DllCall("CloseHandle","Uint",@[folder].O.hEvent)
-				,@.Remove(folder)
-			#:=Object()
-			DirEvents:=Struct("HANDLE[1000]")
-			DllCall("KillTimer","Uint",0,"Uint",timer)
-			timer=
-			Return 0
-		} else {
-			if p.2
-				ReportToFunction:=p.2
-			If !IsFunc(ReportToFunction)
-				Return -1 ;DllCall("MessageBox","Uint",0,"Str","Function " ReportToFunction " does not exist","Str","Error Missing Function","UInt",0)
-			RegExMatch(p.1,"^([^/\*\?<>\|""]+)(\*)?(\|.+)?$",dir)
-			if (SubStr(dir1,0)="\")
-				StringTrimRight,dir1,dir1,1
-			StringTrimLeft,dir3,dir3,1
-			If (p.MaxIndex()=2 && p.2=""){
-				for i,folder in #
-					If (dir1=SubStr(folder,1,StrLen(folder)-1))
-						Return 0 ,DirEvents[i]:=DirEvents[#.MaxIndex()],DirEvents[#.MaxIndex()]:=0
-									@.Remove(folder),#[i]:=#[#.MaxIndex()],#.Remove(i)
-				Return 0
-			}
-		}
-		if !InStr(FileExist(dir1),"D")
-			Return -1 ;DllCall("MessageBox","Uint",0,"Str","Folder " dir1 " does not exist","Str","Error Missing File","UInt",0)
-		for i,folder in #
-		{
-			If (dir1=SubStr(folder,1,StrLen(folder)-1) || (InStr(dir1,folder) && @[folder].sD))
-					Return 0
-			else if (InStr(SubStr(folder,1,StrLen(folder)-1),dir1 "\") && dir2){ ;replace watch
-				DllCall("CloseHandle","Uint",@[folder].hD),DllCall("CloseHandle","Uint",@[folder].O.hEvent),reset:=i
-			}
-		}
-		LP:=SubStr(LP,1,DllCall("GetLongPathName","Str",dir1,"Uint",&LP,"Uint",VarSetCapacity(LP))) "\"
-		If !(reset && @[reset]:=LP)
-			#.Insert(LP)
-		@[LP,"dir"]:=LP
-		@[LP].hD:=DllCall("CreateFile","Str",StrLen(LP)=3?SubStr(LP,1,2):LP,"UInt",0x1,"UInt",0x1|0x2|0x4
-						,"UInt",0,"UInt",0x3,"UInt",0x2000000|0x40000000,"UInt",0)
-		@[LP].sD:=(dir2=""?0:1)
-
-		Loop,Parse,StringToRegEx,|
-			StringReplace,dir3,dir3,% SubStr(A_LoopField,1,1),% SubStr(A_LoopField,2),A
-		StringReplace,dir3,dir3,%A_Space%,\s,A
-		Loop,Parse,dir3,|
-		{
-			If A_Index=1
-				dir3=
-			pre:=(SubStr(A_LoopField,1,2)="\\"?2:0)
-			succ:=(SubStr(A_LoopField,-1)="\\"?2:0)
-			dir3.=(dir3?"|":"") (pre?"\\\K":"")
-					. SubStr(A_LoopField,1+pre,StrLen(A_LoopField)-pre-succ)
-					. ((!succ && !InStr(SubStr(A_LoopField,1+pre,StrLen(A_LoopField)-pre-succ),"\"))?"[^\\]*$":"") (succ?"$":"")
-		}
-		@[LP].FLT:="i)" dir3
-		@[LP].FUNC:=ReportToFunction
-		@[LP].CNG:=(p.3?p.3:(0x1|0x2|0x4|0x8|0x10|0x40|0x100))
-		If !reset {
-			@[LP].SetCapacity("pFNI",sizeof_FNI)
-			@[LP].FNI:=Struct(FILE_NOTIFY_INFORMATION,@[LP].GetAddress("pFNI"))
-			@[LP].O:=Struct(OVERLAPPED)
-		}
-		@[LP].O.hEvent:=DllCall("CreateEvent","Uint",0,"Int",1,"Int",0,"UInt",0)
-		If (!DirEvents)
-			DirEvents:=Struct("HANDLE[1000]")
-		DirEvents[reset?reset:#.MaxIndex()]:=@[LP].O.hEvent
-		DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[],"UInt",sizeof_FNI
-					,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[],"UInt",0)
-		Return timer:=DllCall("SetTimer","Uint",0,"UInt",timer,"Uint",50,"UInt",WatchDirectory)
-	} else {
-		Sleep, 0
-		for LP in reconnect
-		{
-			If (FileExist(@[LP].dir) && reconnect.Remove(LP)){
-				DllCall("CloseHandle","Uint",@[LP].hD)
-				@[LP].hD:=DllCall("CreateFile","Str",StrLen(@[LP].dir)=3?SubStr(@[LP].dir,1,2):@[LP].dir,"UInt",0x1,"UInt",0x1|0x2|0x4
-						,"UInt",0,"UInt",0x3,"UInt",0x2000000|0x40000000,"UInt",0)
-				DllCall("ResetEvent","UInt",@[LP].O.hEvent)
-				DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[],"UInt",sizeof_FNI
-					,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[],"UInt",0)
-			}
-		}
-		if !( (r:=DllCall("MsgWaitForMultipleObjectsEx","UInt",#.MaxIndex()
-					,"UInt",DirEvents[],"UInt",0,"UInt",0x4FF,"UInt",6))>=0
-					&& r<#.MaxIndex() ){
-			return
-		}
-		DllCall("KillTimer", UInt,0, UInt,timer)
-		LP:=#[r+1],DllCall("GetOverlappedResult","UInt",@[LP].hD,"UInt",@[LP].O[],"UIntP",nReadLen,"Int",1)
-		If (A_LastError=64){ ; ERROR_NETNAME_DELETED - The specified network name is no longer available.
-			If !FileExist(@[LP].dir) ; If folder does not exist add to reconnect routine
-				reconnect.Insert(LP,LP)
-		} else
-			Loop {
-				FNI:=A_Index>1?Struct(FILE_NOTIFY_INFORMATION,FNI[]+FNI.NextEntryOffset):Struct(FILE_NOTIFY_INFORMATION,@[LP].FNI[])
-				If (FNI.Action < 0x6){
-					FileName:=@[LP].dir StrGet(FNI.FileName[""],FNI.FileNameLength/2,"UTF-16")
-					If (FNI.Action=FILE_ACTION_RENAMED_OLD_NAME)
-							FileFromOptional:=FileName
-					If (@[LP].FLT="" || RegExMatch(FileName,@[LP].FLT) || FileFrom)
-						If (FNI.Action=FILE_ACTION_ADDED){
-							FileTo:=FileName
-						} else If (FNI.Action=FILE_ACTION_REMOVED){
-							FileFrom:=FileName
-						} else If (FNI.Action=FILE_ACTION_MODIFIED){
-							FileFrom:=FileTo:=FileName
-						} else If (FNI.Action=FILE_ACTION_RENAMED_OLD_NAME){
-							FileFrom:=FileName
-						} else If (FNI.Action=FILE_ACTION_RENAMED_NEW_NAME){
-							FileTo:=FileName
-						}
-          If (FNI.Action != 4 && (FileTo . FileFrom) !="")
-						@[LP].Func(FileFrom=""?FileFromOptional:FileFrom,FileTo)
-				}
-			} Until (!FNI.NextEntryOffset || ((FNI[]+FNI.NextEntryOffset) > (@[LP].FNI[]+sizeof_FNI-12)))
-		DllCall("ResetEvent","UInt",@[LP].O.hEvent)
-		DllCall("ReadDirectoryChangesW","UInt",@[LP].hD,"UInt",@[LP].FNI[],"UInt",sizeof_FNI
-					,"Int",@[LP].sD,"UInt",@[LP].CNG,"UInt",0,"UInt",@[LP].O[],"UInt",0)
-		timer:=DllCall("SetTimer","Uint",0,"UInt",timer,"Uint",50,"UInt",WatchDirectory)
-		Return
-	}
-	Return
+   ; ===============================================================================================================================
+   Else If (Folder = "**PAUSE") { ; called to pause/resume watching
+      Paused := !!UserFunc
+      RebuildObjects := Paused
+   }
+   ; ===============================================================================================================================
+   Else If (Folder = "**END") { ; called to stop watching
+      For K, D In WatchedFolders
+         If K Is Not Integer
+            DllCall("CloseHandle", "Ptr", D.Handle)
+      For Each, Event In EventArray
+         DllCall("CloseHandle", "Ptr", Event)
+      WatchedFolders := {}
+      EventArray := []
+      Paused := False
+      Return True
+   }
+   ; ===============================================================================================================================
+   Else { ; called to add, update, or remove folders
+      Folder := RTrim(Folder, "\")
+      VarSetCapacity(LongPath, SizeOfLongPath, 0)
+      If !DllCall("GetLongPathName", "Str", Folder, "Ptr", &LongPath, "UInt", SizeOfLongPath)
+         Return False
+      VarSetCapacity(LongPath, -1)
+      Folder := LongPath
+      If (WatchedFolders[Folder]) { ; update or remove
+         Handle := WatchedFolders[Folder, "Handle"]
+         Index  := WatchedFolders[Folder, "Index"]
+         DllCall("CloseHandle", "Ptr", Handle)
+         DllCall("CloseHandle", "Ptr", EventArray[Index])
+         EventArray.RemoveAt(Index)
+         WatchedFolders.RemoveAt(Index)
+         WatchedFolders.Delete(Folder)
+         RebuildWaitObjects := True
+      }
+      If InStr(FileExist(Folder), "D") && (UserFunc <> "**DEL") && (EventArray.Length() < MAXIMUM_WAIT_OBJECTS) {
+         If (IsFunc(UserFunc) && (UserFunc := Func(UserFunc)) && (UserFunc.MinParams >= 2)) && (Watch &= 0x017F) {
+            Handle := DllCall("CreateFile", "Str", Folder . "\", "UInt", 0x01, "UInt", 0x07, "Ptr",0, "UInt", 0x03
+                                          , "UInt", 0x42000000, "Ptr", 0, "UPtr")
+            If (Handle > 0) {
+               Event := DllCall("CreateEvent", "Ptr", 0, "Int", 1, "Int", 0, "Ptr", 0)
+               Index := EventArray.Push(Event)
+               WatchedFolders[Index] := Folder
+               WatchedFolders[Folder] := {Func: UserFunc, Handle: Handle, Index: Index, SubTree: !!SubTree, Watch: Watch}
+               WatchedFolders[Folder].SetCapacity("FNIBuff", SizeOfFNI)
+               FNIAddr := WatchedFolders[Folder].GetAddress("FNIBuff")
+               DllCall("RtlZeroMemory", "Ptr", FNIAddr, "Ptr", SizeOfFNI)
+               WatchedFolders[Folder, "FNIAddr"] := FNIAddr
+               WatchedFolders[Folder].SetCapacity("OVLBuff", SizeOfOVL)
+               OVLAddr := WatchedFolders[Folder].GetAddress("OVLBuff")
+               DllCall("RtlZeroMemory", "Ptr", OVLAddr, "Ptr", SizeOfOVL)
+               NumPut(Event, OVLAddr + 8, A_PtrSize * 2, "Ptr")
+               WatchedFolders[Folder, "OVLAddr"] := OVLAddr
+               DllCall("ReadDirectoryChangesW", "Ptr", Handle, "Ptr", FNIAddr, "UInt", SizeOfFNI, "Int", SubTree
+                                              , "UInt", Watch, "UInt", 0, "Ptr", OVLAddr, "Ptr", 0)
+               RebuildWaitObjects := True
+            }
+         }
+      }
+      If (RebuildWaitObjects) {
+         VarSetCapacity(WaitObjects, MAXIMUM_WAIT_OBJECTS * A_PtrSize, 0)
+         OffSet := &WaitObjects
+         For Index, Event In EventArray
+            Offset := NumPut(Event, Offset + 0, 0, "Ptr")
+      }
+   }
+   ; ===============================================================================================================================
+   If (EventArray.Length() > 0)
+      SetTimer, % TimerFunc, -100
+   Return (RebuildWaitObjects) ; returns True on success, otherwise False
 }
 
 
-
-;;;;;;;;;INCLUDE SEGMANT;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-
-;#Include ${ActionPath}
-#Include Action.ahk
+;--------------------------
 
 
-WatchDirectory(A_ScriptDir "\|events.pipe\", "__Callback", 0x10)
-return
+#Include ${ActionPath}
 
-__Callback(param1, param2) {
-	FileRead newFileContent, %param1%
-	if (!(newFileContent = ""))
-	{
-        MsgBox(%newFileContent%)
-		__MessageReceived(newFileContent)
-		f := FileOpen(param1, "w")
-		f.Write()
-		f.Close()
-	}
-	
+;WatchDirectory(A_ScriptDir "\|events.pipe\", "Callback", 0x10)
+;return
+
+;Callback(param1, param2) {
+;	FileRead newFileContent, %param1%
+;	if (!(newFileContent = ""))
+;	{
+;        MsgBox(%newFileContent%)
+;		MessageReceived(newFileContent)
+;		f := FileOpen(param1, "w")
+;		f.Write()
+;		f.Close()
+;	}
+;}
+
+
+WatchFile(filename, callback){
+    Loop{
+        FileGetSize size, %filename%
+        if(size > 0){
+            FileRead msg, %filename%
+            MessageReceived(msg)
+            f := FileOpen(filename, "w")
+            f.Write()
+            f.Close()
+        }
+        Sleep 100
+    }
 }
+
+
 
 SetImage(s){
 	f := FileOpen("image.pipe", "w")
@@ -1376,8 +258,7 @@ SetImage(s){
 	f.Close()
 }
 
-__MessageReceived(s) {
-    MsgBox "sadasd"
+MessageReceived(s) {
 	if (s = "initialize")
 		initialize()
 
@@ -1390,4 +271,5 @@ __MessageReceived(s) {
 
 }
 
+WatchFile("events.pipe", MessageReceived)
 
