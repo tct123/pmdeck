@@ -52,6 +52,10 @@ class AutoHotkeyAction(CustomAction):
 
         def on_msg_receive(msg):
             print("Received From Autohotkey: {}".format(msg))
+            #self.deck.set_key_image_path()
+            path = self.action_folder + "\\" + msg
+            print(path)
+            self.set_image_path(path)
             return
 
         event_handler = FileMessageHandler("image.pipe", self.action_folder + "\\image.pipe", on_msg_receive)
@@ -74,6 +78,9 @@ class AutoHotkeyAction(CustomAction):
         return
 
     def on_released(self):
+        f = open(self.action_folder + "/events.pipe", "w")
+        f.write("on_released")
+        f.close()
         return
 
     def on_exit(self):
