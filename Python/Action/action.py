@@ -1,4 +1,8 @@
 
+import time
+
+from do_threaded import do_threaded
+
 
 class Action:
 
@@ -9,6 +13,7 @@ class Action:
         self.is_pressed = False
         self.deck = deck
         self.initialize()
+        do_threaded(self._update_loop)
         return
 
     def _set_visible(self, space):
@@ -43,6 +48,23 @@ class Action:
         self.on_released()
         return
 
+    def _update_loop(self):
+        last_1_sec_update = time.time()
+
+        while True:
+            last_update = time.time()
+
+            self.on_update()
+            if last_update - last_1_sec_update > 1:
+                self.on_update_sec()
+                last_1_sec_update = last_update
+            if self.is_pressed:
+                self.on_hold_down()
+
+            time_elapsed = time.time() - last_update
+            if time_elapsed < 0.1:
+                time.sleep(0.1-time_elapsed)
+        return
 
     def initialize(self):
         return

@@ -11,20 +11,9 @@ class Python3Action(Action):
 
     def __init__(self, deck, action_id):
 
-        event_names = ["initialize", "on_visible", "on_invisible", "on_pressed", "on_hold_down", "on_released", "on_update_sec", "on_update", "on_exit"]
-
         f = open("Action/Python3/py3glue.py", "r")
         gluetext = f.read()
         f.close()
-        action_path = os.path.abspath('Action/CustomActions/{}/Python3Action.py'.format(action_id))
-
-        # f = open(action_path, "r")
-        # action_text = f.read()
-        # unused_func = "\n"
-        # for e in event_names:
-        #     if not "{}(){{".format(e) in action_text:
-        #         unused_func += "{}(){{\nreturn\n}}\n".format(e)
-        # gluetext = gluetext.replace("${DefinitionOfUnusedFunctions}", unused_func)
 
         self.action_folder = os.path.abspath('Action/CustomActions/{}/'.format(action_id))
         gluepath = self.action_folder+"/glue.py"
@@ -67,14 +56,39 @@ class Python3Action(Action):
         self.proc.stdin.flush()
         return
 
+    def on_hold_down(self):
+        self.proc.stdin.write("on_hold_down\n".encode("utf-8"))
+        self.proc.stdin.flush()
+        return
+
     def on_released(self):
         self.proc.stdin.write("on_released\n".encode("utf-8"))
         self.proc.stdin.flush()
         return
 
-    def on_exit(self):
-        self.proc.terminate()
+    def on_visible(self):
+        self.proc.stdin.write("on_visible\n".encode("utf-8"))
+        self.proc.stdin.flush()
         return
 
+    def on_invisible(self):
+        self.proc.stdin.write("on_invisible\n".encode("utf-8"))
+        self.proc.stdin.flush()
+        return
 
+    def on_update_sec(self):
+        self.proc.stdin.write("on_update_sec\n".encode("utf-8"))
+        self.proc.stdin.flush()
+        return
+
+    def on_update(self):
+        self.proc.stdin.write("on_update\n".encode("utf-8"))
+        self.proc.stdin.flush()
+        return
+
+    def on_exit(self):
+        self.proc.stdin.write("on_exit\n".encode("utf-8"))
+        self.proc.stdin.flush()
+        self.proc.terminate()
+        return
 

@@ -6,6 +6,7 @@ from do_threaded import do_threaded
 from watchdog.observers import Observer
 from watchdog.events import FileModifiedEvent
 
+import time
 
 class AutoHotkeyAction(Action):
 
@@ -83,27 +84,119 @@ class AutoHotkeyAction(Action):
         return
 
     def initialize(self):
-        # TODO wait for file empty
-        f = open(self.action_folder + "/events.pipe", "w")
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
         f.write("initialize")
         f.close()
         return
 
     def on_pressed(self):
-        f = open(self.action_folder + "/events.pipe", "w")
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
         f.write("on_pressed")
         f.close()
         return
 
+    def on_hold_down(self):
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
+        f.write("on_hold_down")
+        f.close()
+        return
+
     def on_released(self):
-        f = open(self.action_folder + "/events.pipe", "w")
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
         f.write("on_released")
         f.close()
         return
 
-    def on_exit(self):
-        self.proc.terminate()
+    def on_visible(self):
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
+        f.write("on_visible")
+        f.close()
         return
 
+    def on_invisible(self):
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
 
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
 
+        f = open(path, "w")
+        f.write("on_invisible")
+        f.close()
+        return
+
+    def on_update_sec(self):
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
+        f.write("on_update_sec")
+        f.close()
+        return
+
+    def on_update(self):
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
+        f.write("on_update")
+        f.close()
+        return
+
+    def on_exit(self):
+        path = self.action_folder + "/events.pipe"
+        while not os.path.isfile(path):
+            time.sleep(0.1)
+
+        while os.path.getsize(path) > 0:
+            time.sleep(0.1)
+
+        f = open(path, "w")
+        f.write("on_exit")
+        f.close()
+        self.proc.terminate()
+        return
