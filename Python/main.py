@@ -2,8 +2,7 @@ from pmdeck import pmdeck
 from threading import Event
 
 from Action.folder import Folder
-from Action.AHK.autohotkey_action import AutoHotkeyAction
-
+from Action.custom_action import create_custom_action
 import atexit
 import threading
 import time
@@ -30,7 +29,7 @@ def on_connected_callback(deck):
     deck.reset()
 
     root_folder = Folder(deck)
-    root_folder.set_action(12, AutoHotkeyAction(deck, "MicOnOffAction"))
+    root_folder.set_action(12, create_custom_action(deck, "MicOnOffAction"))
     # root_folder.set_action(14, CallibrateFootAction(deck))
 
     # root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
