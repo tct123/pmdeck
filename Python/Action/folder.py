@@ -12,7 +12,7 @@ class Folder:
 
         return
 
-    def set_action(self, space_index:int, action):
+    def set_action(self, space_index: int, action):
         if not 14 >= space_index >= 0:
             print("Space index error: " + space_index)
             return

@@ -1,4 +1,4 @@
-from Action.CustomActions.custom_action import CustomAction
+from Action.action import Action
 import os
 import subprocess
 from do_threaded import do_threaded
@@ -7,16 +7,16 @@ from watchdog.observers import Observer
 from watchdog.events import FileModifiedEvent
 
 
-class AutoHotkeyAction(CustomAction):
+class AutoHotkeyAction(Action):
 
     def __init__(self, deck, action_id):
 
         event_names = ["initialize","on_visible","on_invisible","on_pressed","on_hold_down","on_released","on_update_sec","on_update","on_exit"]
 
-        f = open("AhkGlue/fileglue.ahk","r")
+        f = open("Action/AHK/fileglue.ahk","r")
         gluetext = f.read()
         f.close()
-        action_path = os.path.abspath('AhkGlue/CustomActions/{}/Action.ahk'.format(action_id))
+        action_path = os.path.abspath('Action/CustomActions/{}/Action.ahk'.format(action_id))
         gluetext = gluetext.replace("${ActionPath}", action_path)
 
         f = open(action_path, "r")
@@ -27,7 +27,7 @@ class AutoHotkeyAction(CustomAction):
                 unused_func += "{}(){{\nreturn\n}}\n".format(e)
         gluetext = gluetext.replace("${DefinitionOfUnusedFunctions}", unused_func)
 
-        self.action_folder = os.path.abspath('AhkGlue/CustomActions/{}/'.format(action_id))
+        self.action_folder = os.path.abspath('Action/CustomActions/{}/'.format(action_id))
         gluepath = self.action_folder+"/glue.ahk"
         f = open(gluepath,"w")
         f.write(gluetext)
@@ -41,7 +41,7 @@ class AutoHotkeyAction(CustomAction):
         f.write("")
         f.close()
 
-        self.proc = subprocess.Popen("AhkGlue/AutoHotkey/AutoHotkeyU64.exe {}".format(gluepath))
+        self.proc = subprocess.Popen("Action/AHK/AutoHotkeyU64.exe {}".format(gluepath))
         do_threaded(self.image_listener)
 
         super().__init__(deck)
@@ -69,10 +69,10 @@ class AutoHotkeyAction(CustomAction):
                 return
 
         def on_msg_receive(msg):
-            print("Received From Autohotkey: {}".format(msg))
+            # print("Received From Autohotkey: {}".format(msg))
             #self.deck.set_key_image_path()
             path = self.action_folder + "\\" + msg
-            print(path)
+            # print(path)
             self.set_image_path(path)
             return
 

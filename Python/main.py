@@ -1,11 +1,8 @@
-from Action.Actions.callibrate_foot_action import CallibrateFootAction
-from AhkGlue.autohotkey_action import AutoHotkeyAction
 from pmdeck import pmdeck
 from threading import Event
 
 from Action.folder import Folder
-from Action.Actions.mic_action import MicAction
-from Action.Actions.test_action import TestAction
+from Action.AHK.autohotkey_action import AutoHotkeyAction
 
 import atexit
 import threading
@@ -21,10 +18,8 @@ import time
 def key_callback(deck, key, status):
 
     if status == "0":
-        # deck.set_key_image_path(key,"Assets/pressed-min.png")
         deck.current_folder.button_pressed(key)
     else:
-        #deck.set_key_image_path(key,"Assets/released-min.png")
         deck.current_folder.button_released(key)
     return
 
@@ -36,10 +31,10 @@ def on_connected_callback(deck):
 
     root_folder = Folder(deck)
     root_folder.set_action(12, AutoHotkeyAction(deck, "MicOnOffAction"))
-    root_folder.set_action(14, CallibrateFootAction(deck))
+    # root_folder.set_action(14, CallibrateFootAction(deck))
 
-    root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
-    root_folder.set_action(0, AutoHotkeyAction(deck, "Action000-Blank"))
+    # root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
+    # root_folder.set_action(0, AutoHotkeyAction(deck, "Action000-Blank"))
     # for i in range(1,15,2):
     #     root_folder.set_action(i, TestAction(deck))
     root_folder.open()
