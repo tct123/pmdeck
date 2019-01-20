@@ -1,4 +1,3 @@
-# Python3
 
 
 def initialize():

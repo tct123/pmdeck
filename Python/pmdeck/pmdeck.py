@@ -138,8 +138,8 @@ class Deck:
                 try:
                     data = self.client_socket.recv(1024)
                     stream = data.decode('utf-8')
-                    if (len(stream)> 1):
-                        print(stream)
+                    # if (len(stream)> 1):
+                    #     print(stream)
                     for msg in list(filter(None, stream.split(';'))):
                         spl = msg.split(":")
                         cmd = spl[0]

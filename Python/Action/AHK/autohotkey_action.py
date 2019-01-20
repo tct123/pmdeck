@@ -13,10 +13,10 @@ class AutoHotkeyAction(Action):
 
         event_names = ["initialize","on_visible","on_invisible","on_pressed","on_hold_down","on_released","on_update_sec","on_update","on_exit"]
 
-        f = open("Action/AHK/fileglue.ahk","r")
+        f = open("Action/AHK/ahkglue.ahk","r")
         gluetext = f.read()
         f.close()
-        action_path = os.path.abspath('Action/CustomActions/{}/Action.ahk'.format(action_id))
+        action_path = os.path.abspath('Action/CustomActions/{}/AutoHotkeyAction.ahk'.format(action_id))
         gluetext = gluetext.replace("${ActionPath}", action_path)
 
         f = open(action_path, "r")
