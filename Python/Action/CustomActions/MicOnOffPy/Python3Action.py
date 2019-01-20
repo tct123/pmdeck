@@ -1,4 +1,5 @@
 
+enabled = True
 
 def initialize():
     set_image("mic-on.png")
@@ -6,10 +7,13 @@ def initialize():
 
 
 def on_pressed():
-    set_image("mic-off.png")
+    global enabled
+
+    if enabled:
+        set_image("mic-off.png")
+    else:
+        set_image("mic-on.png")
+
+    enabled = not enabled
     return
 
-
-def on_released():
-    set_image("mic-on.png")
-    return

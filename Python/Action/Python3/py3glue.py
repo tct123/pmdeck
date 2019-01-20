@@ -4,14 +4,18 @@ import sys
 import os
 
 def on_event_received(event):
-    if (event == "initialize"):
-        Python3Action.initialize()
 
-    if (event == "on_pressed"):
-        Python3Action.on_pressed()
+    try:
+        if (event == "initialize"):
+            Python3Action.initialize()
 
-    if (event == "on_released"):
-        Python3Action.on_released()
+        if (event == "on_pressed"):
+            Python3Action.on_pressed()
+
+        if (event == "on_released"):
+            Python3Action.on_released()
+    except:
+        pass
 
     return
 
