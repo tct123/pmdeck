@@ -1,4 +1,4 @@
-
+;AutoHotkey
 
 enabled := 1
 
