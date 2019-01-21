@@ -30,7 +30,7 @@ def on_connected_callback(deck):
 
     root_folder = Folder(deck)
     root_folder.set_action(12, create_custom_action(deck, "MicOnOffAction"))
-    # root_folder.set_action(0, create_custom_action(deck, "MicOnOffPy"))
+    root_folder.set_action(0, create_custom_action(deck, "MicOnOffPy"))
     # root_folder.set_action(14, CallibrateFootAction(deck))
 
     # root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
