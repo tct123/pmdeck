@@ -17,9 +17,7 @@ class DeviceManager:
         self.connected_callback = None
         self.disconnected_callback = None
         self.zconf = zeroconf.Zeroconf()
-        self.Decks = {
-            "ANDRIOD1": {"pass": "123456"}
-        }
+        self.Decks = {}
         self.load_deck_info()
         return
 
@@ -138,8 +136,8 @@ class Deck:
                 try:
                     data = self.client_socket.recv(1024)
                     stream = data.decode('utf-8')
-                    # if (len(stream)> 1):
-                    #     print(stream)
+                    if (len(stream)> 1):
+                        print("Received: {}".format(stream))
                     for msg in list(filter(None, stream.split(';'))):
                         spl = msg.split(":")
                         cmd = spl[0]
@@ -155,7 +153,7 @@ class Deck:
                             self.id = args[0]
                             if self.id in self.deviceManager.Decks:
                                 password = self.deviceManager.Decks[self.id]["pass"]
-                                self.client_socket.send("CONN:{},{};".format(get_uid(), password).encode("utf-8"))
+                                self.send("CONN:{},{};\n".format(get_uid(), password))
                             else:
                                 self.disconnect()
 
@@ -166,14 +164,15 @@ class Deck:
                         elif(cmd == "SYNCREQ"):
                             args = spl[1].split(",")
                             self.id = args[0]
-                            self.client_socket.send("SYNCTRY:{},{};".format(get_uid(), "123456").encode("utf-8"))
+                            self.send("SYNCTRY:{},{};\n".format(get_uid(), "123456"))
 
                         elif(cmd == "SYNCACCEPT"):
                             args = spl[1].split(",")
-                            password = args[0]
-                            self.deviceManager.Decks[self.id] = {"connected": True, "pass": password}
+                            uid = args[0]
+                            password = args[1]
+                            self.deviceManager.Decks[uid] = {"connected": True, "pass": password}
                             self.deviceManager.save_deck_info()
-                            self.client_socket.send("CONN:{},{};".format(get_uid(), password).encode("utf-8"))
+                            self.send("CONN:{},{};\n".format(get_uid(), password))
 
                 except Exception as e:
                     # print(e)
@@ -182,22 +181,26 @@ class Deck:
 
         threading.Thread(target=listener).start()
 
-        def pinger():
-            while True:
-                try:
-                    self.client_socket.send("PING;\n".encode('utf-8'))
-                    time.sleep(3)
-                except Exception as e:
-                    print(e)
-                    self.disconnect()
-                    return
+        # def pinger():
+        #     while True:
+        #         try:
+        #             # self.client_socket.send("PING;\n".encode('utf-8'))
+        #             self.send("PING;\n")
+        #             time.sleep(3)
+        #         except Exception as e:
+        #             print(e)
+        #             self.disconnect()
+        #             return
+        #
+        # threading.Thread(target=pinger).start()
 
-        threading.Thread(target=pinger).start()
-
-        self.deviceManager.on_connected(self)
+        #self.deviceManager.on_connected(self)
         return
 
-
+    def send(self, s):
+        print("Sent: {}".format(s))
+        self.client_socket.send(s.encode("utf-8"))
+        return
 
     def disconnect(self):
         if self.disconnected:
@@ -217,7 +220,7 @@ class Deck:
     def set_key_image_path(self, key, image_path: str):
         if image_path.endswith(".png"):
             encoded = base64.b64encode(open(image_path, "rb").read())
-            self.set_key_image_base64(key,encoded)
+            self.set_key_image_base64(key, encoded)
         else:
             print("please give a png file")
         return
