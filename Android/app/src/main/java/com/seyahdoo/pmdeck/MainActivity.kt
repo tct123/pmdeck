@@ -1,13 +1,11 @@
 package com.seyahdoo.pmdeck
 
 import android.annotation.SuppressLint
-import android.content.Context
-import android.content.SharedPreferences
+import android.content.*
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
-import android.preference.Preference
 import android.support.v7.app.AppCompatActivity
 import android.util.Base64
 import android.util.Log
@@ -15,10 +13,11 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageButton
-import android.widget.Toast
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarTheme
 import kotlinx.android.synthetic.main.activity_main.*
+import android.net.wifi.WifiManager
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -75,13 +74,16 @@ class MainActivity : AppCompatActivity() {
                     "PING" -> {
                         con.sendMessage("PONG;")
                     }
+                    "PONG" -> {
+
+                    }
                     "CONN" -> {
                         try {
                             val args = spl[1].split(",")
                             if (args[0] == SyncedID && args[1] == Pass){
                                 PassAccepted = true
                                 con.sendMessage("CONNACCEPT;")
-                                c = con;
+                                c = con
                             }
                         }catch (e:Exception){
                             con.closeConnection()
@@ -164,43 +166,54 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        doThreaded {
-            val d = NetworkDiscovery(this)
-            d.findServers("_pmdeck._tcp.local."){
-                val con = Connection()
-                con.OnDataCallback = controlListener
-                con.openConnection(it.inetAddresses[0],it.port){
-                    if(Synced){
-                        con.sendMessage("CONN:${getUID()};")
-                    }else{
-                        SyncTrying = false
-                        SyncPass = ""
-                        con.sendMessage("SYNCREQ:${getUID()};")
-                    }
+        var d:NetworkDiscovery? = null
+
+        val discoveryListener = NetworkDiscovery.OnFoundListener {
+            val con = Connection()
+            con.OnDataCallback = controlListener
+            con.openConnection(it.inetAddresses[0],it.port){
+                if(Synced){
+                    con.sendMessage("CONN:${getUID()};")
+                }else{
+                    SyncTrying = false
+                    SyncPass = ""
+                    con.sendMessage("SYNCREQ:${getUID()};")
                 }
             }
         }
 
-//        doThreaded {
-//            val d = NetworkDiscovery(this@MainActivity)
-//            d.findServers("_pmdeck._tcp.local.") {
-//                Log.e("Discovery", "Found ${it.inetAddresses}:${it.port}")
-//                val con = Connection()
-//                con.setOnDataListener(controlListener)
-//                con.openConnection(it.inetAddresses[0],it.port) {
-//                    if(Synced){
-//                        //con.sendMessage("CONN:${getUID()};")
-//                    }else{
-//                        con.sendMessage("SYNCREQ:${getUID()};")
-//                    }
-//                }
-//
-//            }
-//        }
+        doThreaded {
+            d = NetworkDiscovery(this)
+            d?.findServers("_pmdeck._tcp.local.", discoveryListener)
+        }
+
+        //On Wifi connection state change
+        val intentFilter = IntentFilter()
+        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
+        registerReceiver( object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                val action:String? = intent?.action
+                if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
+                    if (intent?.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)!!) {
+                        //do stuff
+                        c?.closeConnection()
+                        d?.reset()
+                        d?.findServers("_pmdeck._tcp.local.", discoveryListener)
+                    } else {
+                        // wifi connection was lost
+                    }
+                }
+
+
+            }
+        },intentFilter)
 
     }
 
-    var swap:Boolean = true;
+
+
+
+    var swap:Boolean = true
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP){

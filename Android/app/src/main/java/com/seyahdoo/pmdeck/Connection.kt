@@ -18,16 +18,25 @@ class Connection {
 
     var socket: Socket? = null;
     var writer: PrintWriter? = null;
+    var readThread:Thread? = null
+    var pingThread:Thread? = null
 
 
     fun openConnection(ip:InetAddress, port:Int, onSuccess: (()->Unit)? = null) {
         doThreaded {
             try {
                 socket = Socket(ip, port)
-//                socket?.soTimeout = 10000
+                socket?.soTimeout = 10000
                 writer = PrintWriter(socket!!.getOutputStream())
                 reader(BufferedReader(InputStreamReader(socket?.getInputStream())))
 //                openConnections.add(this)
+                pingThread = doThreaded {
+                    while (true){
+                        Thread.sleep(1000);
+                        this.sendMessage("PING;")
+                    }
+                }
+
                 onSuccess?.invoke()
             } catch (e: Exception) {
                 Log.e("Connection", e.toString());
@@ -57,10 +66,9 @@ class Connection {
     var OnDataCallback: ((Connection,String)->Unit)? = null
 
     fun setOnDataListener(listener: (Connection,String) -> Unit){
-        OnDataCallback = listener;
+        OnDataCallback = listener
     }
 
-    var readThread:Thread? = null;
 
     private fun reader(bufreader: BufferedReader) {
         readThread = doThreaded {

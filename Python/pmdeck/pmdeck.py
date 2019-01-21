@@ -141,6 +141,9 @@ class Deck:
                     for msg in list(filter(None, stream.split(';'))):
                         spl = msg.split(":")
                         cmd = spl[0]
+                        if(cmd == "PING"):
+                            self.send("PONG;")
+
                         if(cmd == "PONG"):
                             pass
 
@@ -153,7 +156,7 @@ class Deck:
                             self.id = args[0]
                             if self.id in self.deviceManager.Decks:
                                 password = self.deviceManager.Decks[self.id]["pass"]
-                                self.send("CONN:{},{};\n".format(get_uid(), password))
+                                self.send("CONN:{},{};".format(get_uid(), password))
                             else:
                                 self.disconnect()
 
@@ -164,7 +167,7 @@ class Deck:
                         elif(cmd == "SYNCREQ"):
                             args = spl[1].split(",")
                             self.id = args[0]
-                            self.send("SYNCTRY:{},{};\n".format(get_uid(), "123456"))
+                            self.send("SYNCTRY:{},{};".format(get_uid(), "123456"))
 
                         elif(cmd == "SYNCACCEPT"):
                             args = spl[1].split(",")
@@ -172,7 +175,7 @@ class Deck:
                             password = args[1]
                             self.deviceManager.Decks[uid] = {"connected": True, "pass": password}
                             self.deviceManager.save_deck_info()
-                            self.send("CONN:{},{};\n".format(get_uid(), password))
+                            self.send("CONN:{},{};".format(get_uid(), password))
 
                 except Exception as e:
                     # print(e)
@@ -181,25 +184,25 @@ class Deck:
 
         threading.Thread(target=listener).start()
 
-        # def pinger():
-        #     while True:
-        #         try:
-        #             # self.client_socket.send("PING;\n".encode('utf-8'))
-        #             self.send("PING;\n")
-        #             time.sleep(3)
-        #         except Exception as e:
-        #             print(e)
-        #             self.disconnect()
-        #             return
-        #
-        # threading.Thread(target=pinger).start()
+        def pinger():
+            while True:
+                try:
+                    # self.client_socket.send("PING;\n".encode('utf-8'))
+                    self.send("PING;")
+                    time.sleep(3)
+                except Exception as e:
+                    print(e)
+                    self.disconnect()
+                    return
+
+        threading.Thread(target=pinger).start()
 
         #self.deviceManager.on_connected(self)
         return
 
     def send(self, s):
         print("Sent: {}".format(s))
-        self.client_socket.send(s.encode("utf-8"))
+        self.client_socket.send((s+"\n").encode("utf-8"))
         return
 
     def disconnect(self):
@@ -227,11 +230,14 @@ class Deck:
 
     def set_key_image_base64(self, key, base64_string):
         encoded = ("IMAGE:" + str(key) + ",").encode('utf-8') + base64_string + ";\n".encode('utf-8')
-        self.client_socket.send(encoded)
+        try:
+            self.client_socket.send(encoded)
+        except Exception as e:
+            self.disconnect()
         return
 
     def set_key_callback(self, callback):
-        self.key_callback = callback;
+        self.key_callback = callback
         return
 
     def on_key_status_change(self, key, status):

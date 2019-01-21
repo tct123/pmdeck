@@ -85,13 +85,13 @@ public class NetworkDiscovery {
     }
 
     public void reset() {
-//        if (mJmDNS != null) {
-//            if (mServiceListener != null) {
-//                mJmDNS.removeServiceListener(TYPE, mServiceListener);
-//                mServiceListener = null;
-//            }
-//            mJmDNS.unregisterAllServices();
-//        }
+        if (mJmDNS != null) {
+            if (mServiceListener != null) {
+                mJmDNS.removeServiceListener(TYPE, mServiceListener);
+                mServiceListener = null;
+            }
+            mJmDNS.unregisterAllServices();
+        }
         if (mMulticastLock != null && mMulticastLock.isHeld()) {
             mMulticastLock.release();
         }
