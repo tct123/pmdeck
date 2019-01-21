@@ -50,10 +50,12 @@ class Connection {
 //            openConnections.remove(this);
 
             readThread?.interrupt()
+            pingThread?.interrupt()
             writer?.close()
             socket?.close()
 
             readThread = null
+            pingThread = null
             writer = null
             socket = null
         }

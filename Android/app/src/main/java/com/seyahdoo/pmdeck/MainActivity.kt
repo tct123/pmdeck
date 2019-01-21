@@ -20,14 +20,12 @@ import android.net.wifi.WifiManager
 import android.content.IntentFilter
 import android.net.NetworkInfo
 import android.content.Intent
-
-
-
-
+import java.util.*
 
 
 class MainActivity : AppCompatActivity() {
 
+    var UID:String = ""
     var Synced:Boolean = false
     var SyncedID:String = ""
     var Pass:String = ""
@@ -46,11 +44,23 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        sharedPref = this?.getPreferences(Context.MODE_PRIVATE)
+        sharedPref = this.getPreferences(Context.MODE_PRIVATE)
+
+        if (!sharedPref?.contains(UID)!!){
+            UID = UUID.randomUUID().toString()
+            with (sharedPref?.edit()) {
+                this?.putString("UID", UID)
+                this?.commit()
+            }
+        }else{
+            UID = sharedPref?.getString("UID", "") ?: ""
+        }
+
 
         Synced = sharedPref?.getBoolean("Synced", false) ?: false
         SyncedID = sharedPref?.getString("SyncedID", "") ?: ""
         Pass = sharedPref?.getString("Pass", "") ?: ""
+
 
         val buttonList: List<ImageButton> = listOf(btn0,btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10,btn11,btn12,btn13,btn14);
 
@@ -132,7 +142,7 @@ class MainActivity : AppCompatActivity() {
                                     SyncTrying = false
                                     SyncPass = "0"
                                     doThreaded {
-                                        con.sendMessage("SYNCACCEPT:${getUID()},$Pass;")
+                                        con.sendMessage("SYNCACCEPT:$UID,$Pass;")
                                     }
                                     it.dismiss()
                                 }
@@ -185,28 +195,35 @@ class MainActivity : AppCompatActivity() {
                 if (action == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
                     val info = intent.getParcelableExtra<NetworkInfo>(WifiManager.EXTRA_NETWORK_INFO)
                     val connected = info.isConnected
-                    Log.i("WIFI", "Connected: $connected")
                     //call your method
                     if (connected != lastState) {
                         lastState = connected
+                        Log.i("WIFI", "Connected: $connected")
                         if (connected){
                             doThreaded {
                                 if (d == null) {
                                     d = NetworkDiscovery(this@MainActivity)
+                                }else{
+                                    d?.reset()
                                 }
                                 d?.findServers("_pmdeck._tcp.local."){
                                     val con = Connection()
                                     con.OnDataCallback = controlListener
                                     con.openConnection(it.inetAddresses[0],it.port){
                                         if(Synced){
-                                            con.sendMessage("CONN:${getUID()};")
+                                            con.sendMessage("CONN:$UID;")
                                         }else{
                                             SyncTrying = false
                                             SyncPass = ""
-                                            con.sendMessage("SYNCREQ:${getUID()};")
+                                            con.sendMessage("SYNCREQ:$UID;")
                                         }
                                     }
                                 }
+                            }
+                        }else{
+                            doThreaded {
+                                c?.closeConnection()
+                                d?.reset()
                             }
                         }
                     }
@@ -218,7 +235,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    var swap:Boolean = true
+//    var swap:Boolean = true
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_VOLUME_UP){
