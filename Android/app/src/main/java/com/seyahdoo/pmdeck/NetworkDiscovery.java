@@ -99,12 +99,12 @@ public class NetworkDiscovery {
         }
     }
 
-    private void wifiLock() {
-        WifiManager wifiManager = (WifiManager) mContext.getSystemService(android.content.Context.WIFI_SERVICE);
-        mMulticastLock = wifiManager.createMulticastLock(TYPE);
-        mMulticastLock.setReferenceCounted(true);
-        mMulticastLock.acquire();
-    }
+//    private void wifiLock() {
+//        WifiManager wifiManager = (WifiManager) mContext.getSystemService(android.content.Context.WIFI_SERVICE);
+//        mMulticastLock = wifiManager.createMulticastLock(TYPE);
+//        mMulticastLock.setReferenceCounted(true);
+//        mMulticastLock.acquire();
+//    }
 
     public interface OnFoundListener {
         void onFound(ServiceInfo info);
