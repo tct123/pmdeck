@@ -46,7 +46,7 @@ class MainActivity : AppCompatActivity() {
 
         sharedPref = this.getPreferences(Context.MODE_PRIVATE)
 
-        if (!sharedPref?.contains(UID)!!){
+        if (!sharedPref?.contains("UID")!!){
             UID = UUID.randomUUID().toString()
             with (sharedPref?.edit()) {
                 this?.putString("UID", UID)
@@ -56,117 +56,13 @@ class MainActivity : AppCompatActivity() {
             UID = sharedPref?.getString("UID", "") ?: ""
         }
 
-
         Synced = sharedPref?.getBoolean("Synced", false) ?: false
         SyncedID = sharedPref?.getString("SyncedID", "") ?: ""
         Pass = sharedPref?.getString("Pass", "") ?: ""
 
+        buttonList = listOf(btn0,btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10,btn11,btn12,btn13,btn14)
 
-        val buttonList: List<ImageButton> = listOf(btn0,btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10,btn11,btn12,btn13,btn14);
-
-        val controlListener = fun (con:Connection, s:String){
-            for (msg in s.split(";")){
-                val spl = msg.split(":");
-                val cmd = spl[0]
-                @SuppressLint("Range")
-                when (cmd){
-                    "IMAGE" -> {
-                        if (!Synced || (Synced && !PassAccepted)){
-                            con.closeConnection()
-                            return
-                        }
-                        try {
-                            val args = spl[1].split(",")
-                            val image = buttonList[(args[0]).toInt()]
-                            val decodedString = Base64.decode(args[1], Base64.DEFAULT);
-                            var bitmap: Bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
-                            bitmap = Bitmap.createScaledBitmap(bitmap, image.measuredWidth, image.measuredHeight, true);
-                            runOnUiThread {
-                                image.setImageBitmap(bitmap)
-                            }
-                        }catch (e: Exception){
-                            e.printStackTrace()
-                        }
-                    }
-                    "PING" -> {
-                        con.sendMessage("PONG;")
-                    }
-                    "PONG" -> {
-
-                    }
-                    "CONN" -> {
-                        try {
-                            val args = spl[1].split(",")
-                            if (args[0] == SyncedID && args[1] == Pass){
-                                PassAccepted = true
-                                con.sendMessage("CONNACCEPT;")
-                                c = con
-                            }
-                        }catch (e:Exception){
-                            con.closeConnection()
-                        }
-                    }
-                    "SYNCREJ" -> {
-                        con.closeConnection()
-                    }
-                    "SYNCTRY" -> {
-                        if (Synced) return
-                        if (SyncTrying) return
-                        try {
-                            val args = spl[1].split(",")
-                            SyncPass = args[1]
-                            SyncTrying = true
-                            //Open Sync UI
-                            CafeBar.builder(this)
-                                .theme(CafeBarTheme.LIGHT)
-                                .floating(true)
-                                .swipeToDismiss(true)
-                                .duration(Int.MAX_VALUE)
-                                .content("Sync request came Do you accept? Password is $SyncPass ")
-                                .positiveText("Accept")
-                                .positiveColor(Color.BLUE)
-                                .negativeText("Reject")
-                                .negativeColor(Color.RED)
-                                .onPositive {
-                                    if (!SyncTrying) return@onPositive
-                                    Synced = true
-                                    SyncedID = args[0]
-                                    Pass = SyncPass
-                                    with (sharedPref?.edit()) {
-                                        this?.putBoolean("Synced", Synced)
-                                        this?.putString("SyncedID", SyncedID)
-                                        this?.putString("Pass", Pass)
-                                        this?.commit()
-                                    }
-
-                                    SyncTrying = false
-                                    SyncPass = "0"
-                                    doThreaded {
-                                        con.sendMessage("SYNCACCEPT:$UID,$Pass;")
-                                    }
-                                    it.dismiss()
-                                }
-                                .onNegative {
-                                    if (!SyncTrying) return@onNegative
-                                    SyncCon?.sendMessage("SYNCREJ;")
-                                    SyncTrying = false
-                                    SyncPass = "0"
-                                    SyncCon?.closeConnection()
-                                    it.dismiss()
-                                }
-                                .show();
-                        }catch (e:Exception){
-                            e.printStackTrace()
-                            Log.e("Network Listener","Closing Connection, Stuff Happened")
-                            con.closeConnection()
-                        }
-                    }
-                }
-            }
-        }
-
-
-        buttonList.forEachIndexed{ index, element ->
+        buttonList!!.forEachIndexed{ index, element ->
             element.setOnTouchListener { _:View, e:MotionEvent ->
                 if (!Synced) return@setOnTouchListener true
                 doThreaded {
@@ -183,57 +79,172 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        var d:NetworkDiscovery? = null
+    }
 
-        //On Wifi connection state change
-        val intentFilter = IntentFilter()
-        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
-        registerReceiver(object : BroadcastReceiver() {
-            var lastState: Boolean = false
-            override fun onReceive(context: Context, intent: Intent) {
-                val action = intent.action
-                if (action == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
-                    val info = intent.getParcelableExtra<NetworkInfo>(WifiManager.EXTRA_NETWORK_INFO)
-                    val connected = info.isConnected
-                    //call your method
-                    if (connected != lastState) {
-                        lastState = connected
-                        Log.i("WIFI", "Connected: $connected")
-                        if (connected){
-                            doThreaded {
-                                if (d == null) {
-                                    d = NetworkDiscovery(this@MainActivity)
-                                }else{
-                                    d?.reset()
+    private var buttonList: List<ImageButton>? = null
+
+    val controlListener = fun (con:Connection, s:String){
+        for (msg in s.split(";")){
+            val spl = msg.split(":");
+            val cmd = spl[0]
+            @SuppressLint("Range")
+            when (cmd){
+                "IMAGE" -> {
+                    if (!Synced || (Synced && !PassAccepted)){
+                        con.closeConnection()
+                        return
+                    }
+                    try {
+                        val args = spl[1].split(",")
+                        val image = buttonList!![(args[0]).toInt()]
+                        val decodedString = Base64.decode(args[1], Base64.DEFAULT);
+                        var bitmap: Bitmap = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+                        bitmap = Bitmap.createScaledBitmap(bitmap, image.measuredWidth, image.measuredHeight, true)
+                        runOnUiThread {
+                            image.setImageBitmap(bitmap)
+                        }
+                    }catch (e: Exception){
+                        e.printStackTrace()
+                    }
+                }
+                "PING" -> {
+                    con.sendMessage("PONG;")
+                }
+                "PONG" -> {
+
+                }
+                "CONN" -> {
+                    try {
+                        val args = spl[1].split(",")
+                        if (args[0] == SyncedID && args[1] == Pass){
+                            PassAccepted = true
+                            con.sendMessage("CONNACCEPT;")
+                            c = con
+                        }
+                    }catch (e:Exception){
+                        e.printStackTrace()
+                        con.closeConnection()
+                    }
+                }
+                "SYNCREJ" -> {
+                    con.closeConnection()
+                }
+                "SYNCTRY" -> {
+                    if (Synced) return
+                    if (SyncTrying) return
+                    try {
+                        val args = spl[1].split(",")
+                        SyncPass = args[1]
+                        SyncTrying = true
+                        //Open Sync UI
+                        CafeBar.builder(this)
+                            .theme(CafeBarTheme.LIGHT)
+                            .floating(true)
+                            .swipeToDismiss(true)
+                            .duration(Int.MAX_VALUE)
+                            .content("Sync request came Do you accept? Password is $SyncPass ")
+                            .positiveText("Accept")
+                            .positiveColor(Color.BLUE)
+                            .negativeText("Reject")
+                            .negativeColor(Color.RED)
+                            .onPositive {
+                                if (!SyncTrying) return@onPositive
+                                Synced = true
+                                SyncedID = args[0]
+                                Pass = SyncPass
+                                with (sharedPref?.edit()) {
+                                    this?.putBoolean("Synced", Synced)
+                                    this?.putString("SyncedID", SyncedID)
+                                    this?.putString("Pass", Pass)
+                                    this?.commit()
                                 }
-                                d?.findServers("_pmdeck._tcp.local."){
-                                    val con = Connection()
-                                    con.OnDataCallback = controlListener
-                                    con.openConnection(it.inetAddresses[0],it.port){
-                                        if(Synced){
-                                            con.sendMessage("CONN:$UID;")
-                                        }else{
-                                            SyncTrying = false
-                                            SyncPass = ""
-                                            con.sendMessage("SYNCREQ:$UID;")
-                                        }
+
+                                SyncTrying = false
+                                SyncPass = "0"
+                                doThreaded {
+                                    con.sendMessage("SYNCACCEPT:$UID,$Pass;")
+                                }
+                                it.dismiss()
+                            }
+                            .onNegative {
+                                if (!SyncTrying) return@onNegative
+                                SyncCon?.sendMessage("SYNCREJ;")
+                                SyncTrying = false
+                                SyncPass = "0"
+                                SyncCon?.closeConnection()
+                                it.dismiss()
+                            }
+                            .show();
+                    }catch (e:Exception){
+                        e.printStackTrace()
+                        Log.e("Network Listener","Closing Connection, Stuff Happened")
+                        con.closeConnection()
+                    }
+                }
+            }
+        }
+    }
+
+    var d:NetworkDiscovery? = null
+
+    private val br:BroadcastReceiver? = object : BroadcastReceiver() {
+        var lastState: Boolean = false
+        override fun onReceive(context: Context, intent: Intent) {
+            val action = intent.action
+            if (action == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
+                val info = intent.getParcelableExtra<NetworkInfo>(WifiManager.EXTRA_NETWORK_INFO)
+                val connected = info.isConnected
+                if (connected != lastState) {
+                    lastState = connected
+                    Log.i("WIFI", "Connected: $connected")
+                    if (connected){
+                        doThreaded {
+                            if (d == null) {
+                                d = NetworkDiscovery(this@MainActivity)
+                            }else{
+                                d?.reset()
+                            }
+                            d?.findServers("_pmdeck._tcp.local."){
+                                val con = Connection()
+                                con.OnDataCallback = controlListener
+                                con.openConnection(it.inetAddresses[0],it.port){
+                                    if(Synced){
+                                        con.sendMessage("CONN:$UID;")
+                                    }else{
+                                        SyncTrying = false
+                                        SyncPass = ""
+                                        con.sendMessage("SYNCREQ:$UID;")
                                     }
                                 }
                             }
-                        }else{
-                            doThreaded {
-                                c?.closeConnection()
-                                d?.reset()
-                            }
+                        }
+                    }else{
+                        doThreaded {
+                            c?.closeConnection()
+                            d?.reset()
                         }
                     }
                 }
             }
-
-        }, intentFilter)
+        }
 
     }
 
+    private var intentFilter:IntentFilter? = null
+
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(br)
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        //On Wifi connection state change
+        intentFilter = IntentFilter()
+        intentFilter?.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+        registerReceiver(br, intentFilter)
+    }
 
 //    var swap:Boolean = true
 

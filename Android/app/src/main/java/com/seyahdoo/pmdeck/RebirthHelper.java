@@ -46,7 +46,8 @@ public class RebirthHelper {
             } else {
                 Log.e(TAG, "Was not able to restart application, Context null");
             }
-        } catch (Exception ex) {
+        } catch (Exception e) {
+            e.printStackTrace();
             Log.e(TAG, "Was not able to restart application");
         }
     }

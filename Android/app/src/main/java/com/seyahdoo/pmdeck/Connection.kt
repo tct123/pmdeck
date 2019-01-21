@@ -1,20 +1,12 @@
 package com.seyahdoo.pmdeck
 
-import android.os.Debug
 import android.util.Log
-import org.jetbrains.anko.doAsync
 import java.io.*
 import java.lang.Exception
 import java.net.InetAddress
 import java.net.Socket
-import java.net.SocketException
-import kotlin.math.log
 
 class Connection {
-
-//    companion object {
-//        var openConnections:MutableList<Connection> = mutableListOf()
-//    }
 
     var socket: Socket? = null;
     var writer: PrintWriter? = null;
@@ -32,14 +24,18 @@ class Connection {
 //                openConnections.add(this)
                 pingThread = doThreaded {
                     while (true){
-                        Thread.sleep(1000);
-                        this.sendMessage("PING;")
+                        try {
+                            Thread.sleep(1000)
+                            this.sendMessage("PING;")
+                        }catch (e: Exception){
+                            e.printStackTrace()
+                        }
                     }
                 }
 
                 onSuccess?.invoke()
             } catch (e: Exception) {
-                Log.e("Connection", e.toString());
+                e.printStackTrace()
             }
         }
     }
@@ -80,6 +76,7 @@ class Connection {
                     Log.e("Message Received", input)
                     OnDataCallback?.invoke(this@Connection, input)
                 } catch (e: Exception) {
+                    e.printStackTrace()
                     this.closeConnection()
                     return@doThreaded
                 }
@@ -93,7 +90,7 @@ class Connection {
             writer?.write(message)
             writer?.flush()
         }catch (e: Exception){
-            Log.e("SEVERE",e.toString())
+            e.printStackTrace()
             closeConnection()
         }
     }

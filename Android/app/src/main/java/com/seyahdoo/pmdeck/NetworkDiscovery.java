@@ -47,6 +47,7 @@ public class NetworkDiscovery {
             InetAddress addr = InetAddress.getByAddress(byteaddr);
             mJmDNS = JmDNS.create(addr);
         } catch (IOException e) {
+            e.printStackTrace();
             Log.d(DEBUG_TAG, "Error in JmDNS creation: " + e);
         }
     }
@@ -57,12 +58,12 @@ public class NetworkDiscovery {
 //            mServiceInfo = ServiceInfo.create(TYPE, SERVICE_NAME, port, SERVICE_NAME);
 //            mJmDNS.registerService(mServiceInfo);
 //        } catch (IOException e) {
+//            e.printStackTrace();
 //            Log.d(DEBUG_TAG, "Error in JmDNS initialization: " + e);
 //        }
 //    }
 
     public void findServers(String serviceType, final OnFoundListener listener) {
-        Log.i("Discovery", "Starting finding servers");
         mJmDNS.addServiceListener(serviceType, mServiceListener = new ServiceListener() {
             @Override
             public void serviceAdded(ServiceEvent serviceEvent) {
