@@ -22,9 +22,9 @@ import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : AppCompatActivity() {
 
-    var Synced:Boolean = true
-    var SyncedID:String = "3cnTXQbjVxkHACXNQZAxa1hMuJf"
-    var Pass:String = "123456"
+    var Synced:Boolean = false
+    var SyncedID:String = ""
+    var Pass:String = ""
 
     var SyncTrying:Boolean = false
     var SyncPass:String = ""
@@ -42,9 +42,9 @@ class MainActivity : AppCompatActivity() {
 
         sharedPref = this?.getPreferences(Context.MODE_PRIVATE)
 
-        //Synced = sharedPref?.getBoolean("Synced", false) ?: false
-        //SyncedID = sharedPref?.getString("SyncedID", "") ?: ""
-        //Pass = sharedPref?.getString("Pass", "") ?: ""
+        Synced = sharedPref?.getBoolean("Synced", false) ?: false
+        SyncedID = sharedPref?.getString("SyncedID", "") ?: ""
+        Pass = sharedPref?.getString("Pass", "") ?: ""
 
         val buttonList: List<ImageButton> = listOf(btn0,btn1,btn2,btn3,btn4,btn5,btn6,btn7,btn8,btn9,btn10,btn11,btn12,btn13,btn14);
 
@@ -55,10 +55,10 @@ class MainActivity : AppCompatActivity() {
                 @SuppressLint("Range")
                 when (cmd){
                     "IMAGE" -> {
-//                        if (!Synced || (Synced && !PassAccepted)){
-//                            con.closeConnection()
-//                            return
-//                        }
+                        if (!Synced || (Synced && !PassAccepted)){
+                            con.closeConnection()
+                            return
+                        }
                         try {
                             val args = spl[1].split(",")
                             val image = buttonList[(args[0]).toInt()]
@@ -97,7 +97,6 @@ class MainActivity : AppCompatActivity() {
                             val args = spl[1].split(",")
                             SyncPass = args[1]
                             SyncTrying = true
-                            SyncCon = con
                             //Open Sync UI
                             CafeBar.builder(this)
                                 .theme(CafeBarTheme.LIGHT)
@@ -111,7 +110,6 @@ class MainActivity : AppCompatActivity() {
                                 .negativeColor(Color.RED)
                                 .onPositive {
                                     if (!SyncTrying) return@onPositive
-                                    SyncCon?.sendMessage("SYNCACCEPT:${SyncPass};")
                                     Synced = true
                                     SyncedID = args[0]
                                     Pass = SyncPass
@@ -124,7 +122,9 @@ class MainActivity : AppCompatActivity() {
 
                                     SyncTrying = false
                                     SyncPass = "0"
-                                    c = con
+                                    doThreaded {
+                                        con.sendMessage("SYNCACCEPT:${getUID()},$Pass;")
+                                    }
                                     it.dismiss()
                                 }
                                 .onNegative {
@@ -168,12 +168,13 @@ class MainActivity : AppCompatActivity() {
             val d = NetworkDiscovery(this)
             d.findServers("_pmdeck._tcp.local."){
                 val con = Connection()
-                c = con
                 con.OnDataCallback = controlListener
                 con.openConnection(it.inetAddresses[0],it.port){
                     if(Synced){
-//                        con.sendMessage("CONN:${getUID()};")
+                        con.sendMessage("CONN:${getUID()};")
                     }else{
+                        SyncTrying = false
+                        SyncPass = ""
                         con.sendMessage("SYNCREQ:${getUID()};")
                     }
                 }

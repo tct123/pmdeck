@@ -29,7 +29,7 @@ class Connection {
                 reader(BufferedReader(InputStreamReader(socket?.getInputStream())))
 //                openConnections.add(this)
                 onSuccess?.invoke()
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 Log.e("Connection", e.toString());
             }
         }
