@@ -2,6 +2,8 @@ import json
 import socket
 import threading
 import base64
+from random import randint
+
 import zeroconf
 # from pmdeck import pybonjour
 import atexit
@@ -167,7 +169,7 @@ class Deck:
                         elif(cmd == "SYNCREQ"):
                             args = spl[1].split(",")
                             self.id = args[0]
-                            self.send("SYNCTRY:{},{};".format(get_uid(), "123456"))
+                            self.send("SYNCTRY:{},{};".format(get_uid(), randint(100000, 999999)))
 
                         elif(cmd == "SYNCACCEPT"):
                             args = spl[1].split(",")
