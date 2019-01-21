@@ -1,2 +1,7 @@
 .idea/
 *.pyc
+Action/Python3/venv
+*.pipe
+glue.py
+glue.ahk
+decks.json
