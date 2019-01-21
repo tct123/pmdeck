@@ -17,6 +17,13 @@ import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarTheme
 import kotlinx.android.synthetic.main.activity_main.*
 import android.net.wifi.WifiManager
+import android.content.IntentFilter
+import android.net.NetworkInfo
+import android.content.Intent
+
+
+
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -168,49 +175,47 @@ class MainActivity : AppCompatActivity() {
 
         var d:NetworkDiscovery? = null
 
-        val discoveryListener = NetworkDiscovery.OnFoundListener {
-            val con = Connection()
-            con.OnDataCallback = controlListener
-            con.openConnection(it.inetAddresses[0],it.port){
-                if(Synced){
-                    con.sendMessage("CONN:${getUID()};")
-                }else{
-                    SyncTrying = false
-                    SyncPass = ""
-                    con.sendMessage("SYNCREQ:${getUID()};")
-                }
-            }
-        }
-
-        doThreaded {
-            d = NetworkDiscovery(this)
-            d?.findServers("_pmdeck._tcp.local.", discoveryListener)
-        }
-
         //On Wifi connection state change
         val intentFilter = IntentFilter()
-        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)
-        registerReceiver( object : BroadcastReceiver() {
-            override fun onReceive(context: Context?, intent: Intent?) {
-                val action:String? = intent?.action
-                if (action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-                    if (intent?.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)!!) {
-                        //do stuff
-                        c?.closeConnection()
-                        d?.reset()
-                        d?.findServers("_pmdeck._tcp.local.", discoveryListener)
-                    } else {
-                        // wifi connection was lost
+        intentFilter.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+        registerReceiver(object : BroadcastReceiver() {
+            var lastState: Boolean = false
+            override fun onReceive(context: Context, intent: Intent) {
+                val action = intent.action
+                if (action == WifiManager.NETWORK_STATE_CHANGED_ACTION) {
+                    val info = intent.getParcelableExtra<NetworkInfo>(WifiManager.EXTRA_NETWORK_INFO)
+                    val connected = info.isConnected
+                    Log.i("WIFI", "Connected: $connected")
+                    //call your method
+                    if (connected != lastState) {
+                        lastState = connected
+                        if (connected){
+                            doThreaded {
+                                if (d == null) {
+                                    d = NetworkDiscovery(this@MainActivity)
+                                }
+                                d?.findServers("_pmdeck._tcp.local."){
+                                    val con = Connection()
+                                    con.OnDataCallback = controlListener
+                                    con.openConnection(it.inetAddresses[0],it.port){
+                                        if(Synced){
+                                            con.sendMessage("CONN:${getUID()};")
+                                        }else{
+                                            SyncTrying = false
+                                            SyncPass = ""
+                                            con.sendMessage("SYNCREQ:${getUID()};")
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-
-
             }
-        },intentFilter)
+
+        }, intentFilter)
 
     }
-
-
 
 
     var swap:Boolean = true

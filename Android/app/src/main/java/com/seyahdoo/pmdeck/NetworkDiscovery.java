@@ -62,6 +62,7 @@ public class NetworkDiscovery {
 //    }
 
     public void findServers(String serviceType, final OnFoundListener listener) {
+        Log.i("Discovery", "Starting finding servers");
         mJmDNS.addServiceListener(serviceType, mServiceListener = new ServiceListener() {
             @Override
             public void serviceAdded(ServiceEvent serviceEvent) {
