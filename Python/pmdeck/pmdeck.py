@@ -124,6 +124,7 @@ class Deck:
         self.client_socket: socket.socket = client_socket;
         self.disconnected = False
         self.deviceManager = deviceManager
+
         return
 
     def __del__(self):
@@ -213,6 +214,7 @@ class Deck:
 
         print("Deck Disconnected")
         # TODO
+
 
         self.disconnected = True
         return

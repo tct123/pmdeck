@@ -8,32 +8,51 @@ import java.net.Socket
 
 class Connection {
 
-    var socket: Socket? = null;
-    var writer: PrintWriter? = null;
+    var socket: Socket? = null
+    var writer: PrintWriter? = null
+    var reader: BufferedReader? = null
     var readThread:Thread? = null
     var pingThread:Thread? = null
 
+    constructor(ip:InetAddress, port: Int, onData: (Connection,String)->Unit, onSuccess: ((Connection)->Unit)? = null){
+        OnDataCallback = onData
+        openConnection(ip, port, onSuccess)
+    }
 
-    fun openConnection(ip:InetAddress, port:Int, onSuccess: (()->Unit)? = null) {
+    private fun openConnection(ip:InetAddress, port:Int, onSuccess: ((Connection)->Unit)? = null) {
         doThreaded {
             try {
                 socket = Socket(ip, port)
-                socket?.soTimeout = 10000
+//                socket?.soTimeout = 10000
                 writer = PrintWriter(socket!!.getOutputStream())
-                reader(BufferedReader(InputStreamReader(socket?.getInputStream())))
-//                openConnections.add(this)
+                reader = BufferedReader(InputStreamReader(socket?.getInputStream()))
+                readThread = doThreaded {
+                    while (!Thread.interrupted()) {
+                        try {
+                            val input: String = reader?.readLine() ?: continue
+                            Log.e("Message Received", "from: ${socket!!.inetAddress.hostAddress}:${socket!!.port} ->  $input")
+                            OnDataCallback?.invoke(this@Connection, input)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                            this.closeConnection()
+                            break
+                        }
+                    }
+                }
                 pingThread = doThreaded {
-                    while (true){
+                    while (!Thread.interrupted()){
                         try {
                             Thread.sleep(1000)
                             this.sendMessage("PING;")
                         }catch (e: Exception){
                             e.printStackTrace()
+                            this.closeConnection()
+                            break
                         }
                     }
                 }
 
-                onSuccess?.invoke()
+                onSuccess?.invoke(this)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -43,52 +62,28 @@ class Connection {
     fun closeConnection(){
         doThreaded {
             Log.e("Connection","Closing connection")
-//            openConnections.remove(this);
 
             readThread?.interrupt()
             pingThread?.interrupt()
-            writer?.close()
             socket?.close()
+            reader?.close()
+            writer?.close()
 
             readThread = null
             pingThread = null
             writer = null
+            reader = null
             socket = null
         }
     }
 
-    interface OnDataListener {
-        fun onData(s: String)
-    }
-
     var OnDataCallback: ((Connection,String)->Unit)? = null
 
-    fun setOnDataListener(listener: (Connection,String) -> Unit){
-        OnDataCallback = listener
-    }
-
-
-    private fun reader(bufreader: BufferedReader) {
-        readThread = doThreaded {
-            while (true) {
-                try {
-                    val input: String = bufreader.readLine() ?: continue
-                    Log.e("Message Received", input)
-                    OnDataCallback?.invoke(this@Connection, input)
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    this.closeConnection()
-                    return@doThreaded
-                }
-            }
-        }
-    }
-
     fun sendMessage(message:String){
-        Log.e("Message Sent",message)
+        Log.e("Message Sent","To ${socket!!.inetAddress.hostAddress}:${socket!!.port} -> $message")
         try{
-            writer?.write(message)
-            writer?.flush()
+            writer!!.write(message)
+            writer!!.flush()
         }catch (e: Exception){
             e.printStackTrace()
             closeConnection()

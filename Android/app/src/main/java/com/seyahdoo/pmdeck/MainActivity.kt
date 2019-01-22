@@ -21,6 +21,11 @@ import android.content.IntentFilter
 import android.net.NetworkInfo
 import android.content.Intent
 import java.util.*
+import android.net.wifi.WifiInfo
+import android.content.Context.WIFI_SERVICE
+import android.net.wifi.SupplicantState
+
+
 
 
 class MainActivity : AppCompatActivity() {
@@ -174,7 +179,7 @@ class MainActivity : AppCompatActivity() {
                                 SyncCon?.closeConnection()
                                 it.dismiss()
                             }
-                            .show();
+                            .show()
                     }catch (e:Exception){
                         e.printStackTrace()
                         Log.e("Network Listener","Closing Connection, Stuff Happened")
@@ -198,30 +203,14 @@ class MainActivity : AppCompatActivity() {
                     lastState = connected
                     Log.i("WIFI", "Connected: $connected")
                     if (connected){
-                        doThreaded {
-                            if (d == null) {
-                                d = NetworkDiscovery(this@MainActivity)
-                            }else{
-                                d?.reset()
-                            }
-                            d?.findServers("_pmdeck._tcp.local."){
-                                val con = Connection()
-                                con.OnDataCallback = controlListener
-                                con.openConnection(it.inetAddresses[0],it.port){
-                                    if(Synced){
-                                        con.sendMessage("CONN:$UID;")
-                                    }else{
-                                        SyncTrying = false
-                                        SyncPass = ""
-                                        con.sendMessage("SYNCREQ:$UID;")
-                                    }
-                                }
-                            }
-                        }
+                        OnWifiConnected()
                     }else{
                         doThreaded {
-                            c?.closeConnection()
+//                            c?.closeConnection()
+//                            c = null
                             d?.reset()
+//                            c?.closeConnection()
+//                            c = null
                         }
                     }
                 }
@@ -234,16 +223,58 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        Log.d("OnPause","OnPause")
         unregisterReceiver(br)
+        c?.closeConnection()
+        c = null
     }
 
     override fun onResume() {
         super.onResume()
+        Log.d("onResume","onResume")
 
         //On Wifi connection state change
         intentFilter = IntentFilter()
         intentFilter?.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
         registerReceiver(br, intentFilter)
+
+        //Do the thing if connected
+        if (isWifiConnected()){
+            OnWifiConnected()
+        }
+
+    }
+
+    fun OnWifiConnected(){
+        doThreaded {
+            c?.closeConnection()
+            c = null
+            if (d == null) {
+                d = NetworkDiscovery(this@MainActivity)
+            }else{
+                d?.reset()
+            }
+            d?.findServers("_pmdeck._tcp.local."){
+                Log.e("Main", "Found a server, connectiong. ${it.inet4Addresses[0]} : ${it.port}")
+                Connection(it.inetAddresses[0],it.port, controlListener){
+                    if(Synced){
+                        it.sendMessage("CONN:$UID;")
+                    }else{
+                        SyncTrying = false
+                        SyncPass = ""
+                        it.sendMessage("SYNCREQ:$UID;")
+                    }
+                }
+            }
+        }
+
+    }
+
+    fun isWifiConnected(): Boolean {
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiInfo = wifiManager.connectionInfo
+        val supState = wifiInfo.supplicantState
+        return (supState == SupplicantState.COMPLETED)
     }
 
 //    var swap:Boolean = true
@@ -266,7 +297,6 @@ class MainActivity : AppCompatActivity() {
         }else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
             //swap = !swap;
             //setSystemUIEnabled(swap);
-
         }
         return true
     }
