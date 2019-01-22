@@ -43,6 +43,7 @@ class Connection {
                         } catch (e: Exception) {
                             e.printStackTrace()
                             this@Connection.closeConnection()
+                            Thread.currentThread().interrupt()
                         }
                     }
                     return@doThreaded
@@ -56,6 +57,7 @@ class Connection {
                         }catch (e: Exception){
                             e.printStackTrace()
                             this@Connection.closeConnection()
+                            Thread.currentThread().interrupt()
                         }
                     }
                     return@doThreaded
