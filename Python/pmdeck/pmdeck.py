@@ -11,7 +11,7 @@ import sys
 import time
 
 from pmdeck.get_uid import get_uid
-
+from pmdeck.get_ip import get_ip
 
 class DeviceManager:
 
@@ -28,12 +28,8 @@ class DeviceManager:
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((bind_ip, 0))
         self.server_socket.listen(5)  # max backlog of connections
-        local_ip = ""
+        local_ip = get_ip()
         port = self.server_socket.getsockname()[1]
-        try:
-            local_ip = (([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")] or [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) + ["no IP found"])[0]
-        except:
-            print("exception on getting local ip")
 
         print('Listening on {}:{}'.format(local_ip, port))
 
