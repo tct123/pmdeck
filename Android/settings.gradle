@@ -1,1 +1,1 @@
-include ':app', ':jmdns-3.5.5'
+include ':app'
