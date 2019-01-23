@@ -181,11 +181,11 @@ class Deck:
                             self.send("CONN:{},{};".format(get_uid(), password))
 
                 except Exception as e:
-                    # print(e)
+                    print(e)
                     self.disconnect()
                     return
 
-        self.read_thread =threading.Thread(target=listener)
+        self.read_thread = threading.Thread(target=listener)
         self.read_thread.start()
 
         def pinger():
