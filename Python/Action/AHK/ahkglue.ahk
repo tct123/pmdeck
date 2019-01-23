@@ -16,7 +16,7 @@ SetImage(s){
             f.Close()
             Return
         }
-        Sleep 10
+        Sleep 5
     }
     Return
 }
@@ -35,7 +35,7 @@ WatchFile(filename, callback){
             f.Write()
             f.Close()
         }
-        Sleep 10
+        Sleep 5
     }
     Return
 }

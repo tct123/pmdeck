@@ -230,7 +230,7 @@ class Deck:
             encoded = base64.b64encode(open(image_path, "rb").read())
             self.set_key_image_base64(key, encoded)
         else:
-            print("please give a png file")
+            print("please give a png file, this is not acceptable -> {}".format(image_path))
         return
 
     def set_key_image_base64(self, key, base64_string):
