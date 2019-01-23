@@ -73,6 +73,10 @@ class MainActivity : AppCompatActivity() {
                         MotionEvent.ACTION_UP -> {
                             c?.sendMessage("BTNEVENT:$index,1;")
                         }
+                        MotionEvent.ACTION_POINTER_UP -> {
+
+                        }
+
                     }
                 }
                 return@setOnTouchListener true

@@ -32,7 +32,65 @@ var app = {
 
     // Update DOM on a Received Event
     receivedEvent: function(id) {
-        console.log("deviceready");
+        console.log("device really ready");
+
+        //Wifi https://github.com/apache/cordova-plugin-network-information
+
+        var zeroconf = cordova.plugins.zeroconf;
+
+        document.addEventListener("online", onOnline, false);
+
+        function onOnline() {
+            // Handle the online event
+            var networkState = navigator.connection.type;
+            
+            var states = {};
+            states[Connection.UNKNOWN]  = 'Unknown connection';
+            states[Connection.ETHERNET] = 'Ethernet connection';
+            states[Connection.WIFI]     = 'WiFi connection';
+            states[Connection.CELL_2G]  = 'Cell 2G connection';
+            states[Connection.CELL_3G]  = 'Cell 3G connection';
+            states[Connection.CELL_4G]  = 'Cell 4G connection';
+            states[Connection.CELL]     = 'Cell generic connection';
+            states[Connection.NONE]     = 'No network connection';
+
+            if (networkState !== Connection.NONE) {
+                console.log("Connected now" + states[networkState])
+                discover()
+            }
+        }   
+
+        var zeroconf = cordova.plugins.zeroconf;
+        
+        function discover(){
+        }
+        // zeroconf.reInit()
+
+        zeroconf.watch('_pmdeck._tcp.', 'local.', function(result) {
+            var action = result.action;
+            var service = result.service;
+            if (action == 'added') {
+                console.log('service added'+ service);
+            } else if (action == 'resolved') {
+                console.log('service resolved'+ service.ipv4Addresses[0] + ":" + service.port +";");
+                /* service : {
+                'domain' : 'local.',
+                'type' : '_http._tcp.',
+                'name': 'Becvert\'s iPad',
+                'port' : 80,
+                'hostname' : 'ipad-of-becvert.local',
+                'ipv4Addresses' : [ '192.168.1.125' ], 
+                'ipv6Addresses' : [ '2001:0:5ef5:79fb:10cb:1dbf:3f57:feb0' ],
+                'txtRecord' : {
+                    'foo' : 'bar'
+                } */
+            } else {
+                console.log('service removed'+ service);
+            }
+        });
+
+        
+
         
     }
 };

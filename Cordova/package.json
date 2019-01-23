@@ -11,17 +11,20 @@
     "license": "Apache-2.0",
     "dependencies": {
         "cordova-android": "^7.1.4",
-        "cordova-browser": "^5.0.4",
+        "cordova-plugin-add-swift-support": "^1.7.2",
+        "cordova-plugin-network-information": "^2.0.1",
         "cordova-plugin-whitelist": "^1.3.3",
+        "cordova-plugin-zeroconf": "^1.3.3",
         "cz.blocshop.socketsforcordova": "^1.1.0"
     },
     "cordova": {
         "plugins": {
             "cordova-plugin-whitelist": {},
-            "cz.blocshop.socketsforcordova": {}
+            "cz.blocshop.socketsforcordova": {},
+            "cordova-plugin-zeroconf": {},
+            "cordova-plugin-network-information": {}
         },
         "platforms": [
-            "browser",
             "android"
         ]
     }
