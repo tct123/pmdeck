@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.NetworkInfo
+import android.net.wifi.SupplicantState
 import android.net.wifi.WifiManager
 import android.util.Log
 
@@ -51,6 +52,13 @@ class WifiStateWatcher {
 
     fun resume(){
         context?.registerReceiver(br, intentFilter)
+    }
+
+    fun isWifiConnected(): Boolean {
+        val wifiManager = context?.applicationContext?.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val wifiInfo = wifiManager.connectionInfo
+        val supState = wifiInfo.supplicantState
+        return (supState == SupplicantState.COMPLETED)
     }
 
 }
