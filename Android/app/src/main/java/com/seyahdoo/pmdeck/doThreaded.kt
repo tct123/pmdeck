@@ -7,3 +7,12 @@ fun doThreaded (func: () -> Unit): Thread {
     t.start()
     return t
 }
+
+fun doThreaded (func: () -> Unit, onDone: () -> Unit): Thread {
+    val t = Thread(Runnable {
+        func()
+        onDone()
+    })
+    t.start()
+    return t
+}
