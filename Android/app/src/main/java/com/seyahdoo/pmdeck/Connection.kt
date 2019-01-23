@@ -38,7 +38,7 @@ class Connection {
                     while (readRun.get()) {
                         try {
                             val input: String = reader?.readLine() ?: continue
-                            Log.e("Message Received", "from: ${socket!!.inetAddress.hostAddress}:${socket!!.port} ->  $input")
+                            Log.i("Message Received", "from: ${socket!!.inetAddress.hostAddress}:${socket!!.port} ->  $input")
                             OnDataCallback?.invoke(this@Connection, input)
                         } catch (e: Exception) {
                             e.printStackTrace()
@@ -47,19 +47,19 @@ class Connection {
                         }
                     }
                 }
-                pingThread = doThreaded {
-                    pingRun.set(true)
-                    while (pingRun.get()){
-                        try {
-                            Thread.sleep(1000)
-                            this.sendMessage("PING;")
-                        }catch (e: Exception){
-                            e.printStackTrace()
-                            this@Connection.closeConnection()
-                            Thread.currentThread().interrupt()
-                        }
-                    }
-                }
+//                pingThread = doThreaded {
+//                    pingRun.set(true)
+//                    while (pingRun.get()){
+//                        try {
+//                            Thread.sleep(1000)
+//                            this.sendMessage("PING;")
+//                        }catch (e: Exception){
+//                            e.printStackTrace()
+//                            this@Connection.closeConnection()
+//                            Thread.currentThread().interrupt()
+//                        }
+//                    }
+//                }
 
                 onSuccess?.invoke(this)
             } catch (e: Exception) {
@@ -81,8 +81,9 @@ class Connection {
 
                 pingRun.set(false)
                 readRun.set(false)
-                pingThread?.join()
-                readThread?.join()
+//                pingThread?.join()
+//                readThread?.join()
+                readThread?.interrupt()
 
                 sendMessage("CLOSE;")
 
@@ -96,7 +97,6 @@ class Connection {
                 reader = null
                 socket = null
                 closed = true
-
                 onSuccess?.invoke(this)
             }
         }
@@ -107,10 +107,11 @@ class Connection {
     var OnDataCallback: ((Connection,String)->Unit)? = null
 
     fun sendMessage(message:String){
+        if (closed) return
         try{
             writer!!.write(message)
             writer!!.flush()
-            Log.e("Message Sent","To ${socket!!.inetAddress.hostAddress}:${socket!!.port} -> $message")
+            Log.i("Message Sent","To ${socket!!.inetAddress.hostAddress}:${socket!!.port} -> $message")
         }catch (e: Exception){
             e.printStackTrace()
             closeConnection()

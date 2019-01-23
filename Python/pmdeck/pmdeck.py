@@ -128,7 +128,7 @@ class Deck:
 
     def read(self):
 
-        # self.client_socket.settimeout(10)
+        # self.client_socket.settimeout(5)
 
         def listener():
             while not self.disconnected:
@@ -188,18 +188,18 @@ class Deck:
         self.read_thread = threading.Thread(target=listener)
         self.read_thread.start()
 
-        def pinger():
-            while not self.disconnected:
-                try:
-                    self.send("PING;")
-                    time.sleep(3)
-                except Exception as e:
-                    print(e)
-                    self.disconnect()
-                    return
-
-        self.ping_thread = threading.Thread(target=pinger)
-        self.ping_thread.start()
+        # def pinger():
+        #     while not self.disconnected:
+        #         try:
+        #             self.send("PING;")
+        #             time.sleep(3)
+        #         except Exception as e:
+        #             print(e)
+        #             self.disconnect()
+        #             return
+        #
+        # self.ping_thread = threading.Thread(target=pinger)
+        # self.ping_thread.start()
 
         #self.deviceManager.on_connected(self)
         return
@@ -215,6 +215,7 @@ class Deck:
 
         print("Deck Disconnected")
         # TODO
+        self.client_socket.close()
 
         self.disconnected = True
         return

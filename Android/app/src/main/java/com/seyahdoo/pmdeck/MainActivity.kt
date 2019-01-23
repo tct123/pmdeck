@@ -16,6 +16,7 @@ import android.widget.ImageButton
 import com.danimahardhika.cafebar.CafeBar
 import com.danimahardhika.cafebar.CafeBarTheme
 import kotlinx.android.synthetic.main.activity_main.*
+import java.net.InetAddress
 import java.util.*
 
 
@@ -185,8 +186,11 @@ class MainActivity : AppCompatActivity() {
             fun() {
                 //start discovery
                 val discover = fun (){
+                    Thread.sleep(1000)
+                    Log.e("WIFI", "internet state -> ${wifiStateWatcher?.isInternetAvailable()}")
+
                     if (d == null) d = NetworkDiscovery(this@MainActivity)
-                    d?.reset()
+                    else d?.reset()
                     d?.findServers("_pmdeck._tcp.local."){ it ->
                         Log.e("Main", "Found a server, connectiong. ${it.inet4Addresses[0]} : ${it.port}")
                         Connection(it.inetAddresses[0],it.port, controlListener){ con ->
@@ -212,12 +216,10 @@ class MainActivity : AppCompatActivity() {
                 }
             },
             fun() {
-
+                Log.e("WIFI", "internet state -> ${wifiStateWatcher?.isInternetAvailable()}")
             }
         )
-
     }
-
 
     override fun onPause() {
         Log.d("OnPause","OnPause")
