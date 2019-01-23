@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     private var sharedPref:SharedPreferences? = null
 
+    private var wifiStateWatcher:WifiStateWatcher? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,6 +84,16 @@ class MainActivity : AppCompatActivity() {
                 return@setOnTouchListener true
             }
         }
+
+        wifiStateWatcher = WifiStateWatcher(
+            this,
+            fun() {
+                Log.i("MainActivity", "On Wifi On")
+            },
+            fun() {
+                Log.i("MainActivity", "On Wifi Off")
+            }
+        )
 
     }
 
@@ -219,10 +230,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onPause() {
         Log.d("OnPause","OnPause")
-        c?.closeConnection {
-            c = null
-        }
-        unregisterReceiver(br)
+//        c?.closeConnection {
+//            c = null
+//        }
+//        unregisterReceiver(br)
+        wifiStateWatcher?.pause()
         super.onPause()
     }
 
@@ -230,14 +242,16 @@ class MainActivity : AppCompatActivity() {
         Log.d("onResume","onResume")
 
         //On Wifi connection state change
-        intentFilter = IntentFilter()
-        intentFilter?.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
-        registerReceiver(br, intentFilter)
+//        intentFilter = IntentFilter()
+//        intentFilter?.addAction(WifiManager.NETWORK_STATE_CHANGED_ACTION)
+//        registerReceiver(br, intentFilter)
+//
+//        //Do the thing if connected
+//        if (isWifiConnected()){
+//            onWifiConnected()
+//        }
 
-        //Do the thing if connected
-        if (isWifiConnected()){
-            onWifiConnected()
-        }
+        wifiStateWatcher?.resume()
 
         super.onResume()
     }
