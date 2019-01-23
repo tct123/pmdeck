@@ -46,7 +46,6 @@ class Connection {
                             Thread.currentThread().interrupt()
                         }
                     }
-                    return@doThreaded
                 }
                 pingThread = doThreaded {
                     pingRun.set(true)
@@ -60,7 +59,6 @@ class Connection {
                             Thread.currentThread().interrupt()
                         }
                     }
-                    return@doThreaded
                 }
 
                 onSuccess?.invoke(this)
