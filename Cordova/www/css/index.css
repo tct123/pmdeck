@@ -45,17 +45,17 @@ body {
 .button-container {
     width: 100%;
     height: 100%;
-    background: gray;
+    /* background: gray; */
 }
 
 .button-wrapper {
-    width: 33.3333333%;
-    height: 50%;
+    /* width: 33.3333333%;
+    height: 50%; */
     float: left;
 }
 
 .button {
-	border:1px solid #0b0e07;
+	/* border:0px solid #0b0e07; */
     display:inline-block;
     background-size:     cover;
     background-repeat:   no-repeat;

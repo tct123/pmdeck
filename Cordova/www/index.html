@@ -9,13 +9,14 @@
     <body>
         <div class="app">
             
-            <div class="button-container">
-                <button class="button-wrapper button" id="act1"></button>
+            <div class="button-container" id="buttonContainer">
+
+                <!-- <button class="button-wrapper button" id="act1"></button>
                 <button class="button-wrapper button" id="act2"></button>
                 <button class="button-wrapper button" id="act3"></button>
                 <button class="button-wrapper button" id="act4"></button>
                 <button class="button-wrapper button" id="act5"></button>
-                <button class="button-wrapper button" id="act6"></button>
+                <button class="button-wrapper button" id="act6"></button> -->
              </div>
 
         </div>
@@ -73,51 +74,7 @@
             
 
 
-                // socket = new Socket();
-
-                // socket.onData = function(data) {
-                //     // invoked after new batch of data is received (typed array of bytes Uint8Array)
-                    
-                //     dstr = new TextDecoder("utf-8").decode(data);
-                //     stream += dstr;
-
-                    
-
-                //     if (current_reading_string == ""){
-                //         var cmd = dstr.split(';');
-                //         current_key = cmd[0];
-                //         current_reading_string = cmd[1];
-                //     }else if (!dstr.includes("~")){
-                //         current_reading_string += dstr;
-                //     }else{
-                //         var cmd = dstr.split('~');
-                //         current_reading_string += cmd[0];
-
-                //         url = "data:image/png;base64," + current_reading_string;
-                //         $("#act"+ current_key).css("background-image", "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')");
-                //         console.log(cmd[1])
-                //         current_reading_string = "";
-                //     }
-                    
-                // };
-                // socket.onError = function(errorMessage) {
-                //   // invoked after error occurs during connection
-                // };
-                // socket.onClose = function(hasError) {
-                //   // invoked after connection close
-                // };
-
-                // socket.open(
-                //     "192.168.1.33", 
-                //     23997,
-                //     function() {
-                //         console.log("connected");
-                //     },
-                //     function(errorMessage) {
-                //       // invoked after unsuccessful opening of socket
-                //       console.log(errorMessage);
-                //     }
-                // );
+                
             // };
             
             //https://github.com/kapetan/cordova-plugin-android-wifi-manager
