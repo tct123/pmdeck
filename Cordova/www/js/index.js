@@ -34,7 +34,6 @@ var app = {
         var paired = true;
         var pass = 123456;
 
-
         //Setup Buttons
         var grid_x = 3;
         var grid_y = 5;
@@ -56,6 +55,25 @@ var app = {
             buttons.push(btn)
             buttonContainer.appendChild(btn);
         }
+
+        // Start a scan. Scanning will continue until something is detected or
+        // `QRScanner.cancelScan()` is called.
+        QRScanner.scan(displayContents);
+        
+        function displayContents(err, text){
+            if(err){
+                console.log(err);
+                // an error occurred, or the scan was canceled (error code `6`)
+            } else {
+                // The scan completed, display the contents of the QR code:
+                console.log(text);
+                QRScanner.hide();
+            }
+        }
+        
+        var body = document.getElementById("the_body")
+        body.style.opacity = 0.0;
+
 
         //Wifi https://github.com/apache/cordova-plugin-network-information
 
