@@ -1,0 +1,51 @@
+* {
+    -webkit-tap-highlight-color: rgba(0,0,0,0); /* make transparent link selection, adjust last value opacity 0 to 1.0 */
+}
+
+body {
+    -webkit-touch-callout: none; /* prevent callout to copy image, etc when tap to hold */
+    -webkit-text-size-adjust: none; /* prevent webkit from resizing text to fit */
+    -webkit-user-select: none; /* prevent copy paste, to allow, change 'none' to 'text' */
+    height: 100%;
+    text-transform: uppercase;
+    width: 100%;
+    margin: 0px;
+    padding: 0px;
+    opacity: 0.0;
+
+}
+
+.scanning-body  {
+    opacity: 0;
+}
+
+/* Portrait layout (default) */
+.app {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    min-height: 100%;
+    width: 100%;
+    overflow: hidden;
+}
+
+.button-container {
+    width: 100%;
+    height: 100%;
+    /* background: gray; */
+}
+
+.button-wrapper {
+    /* width: 33.3333333%;
+    height: 50%; */
+    float: left;
+}
+
+.button {
+    /* border:0px solid #0b0e07; */
+    display: inline-block;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
