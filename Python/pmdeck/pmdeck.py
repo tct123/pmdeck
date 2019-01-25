@@ -206,7 +206,7 @@ class Deck:
 
     def send(self, s):
         print("Sent: {}".format(s))
-        self.client_socket.send((s+"\n").encode("utf-8"))
+        self.client_socket.send(s.encode("utf-8"))
         return
 
     def disconnect(self):
@@ -234,7 +234,8 @@ class Deck:
         return
 
     def set_key_image_base64(self, key, base64_string):
-        encoded = ("IMAGE:" + str(key) + ",").encode('utf-8') + base64_string + ";\n".encode('utf-8')
+        print(base64_string);
+        encoded = ("IMAGE:" + str(key) + ",").encode('utf-8') + base64_string + ";".encode('utf-8')
         try:
             self.client_socket.send(encoded)
         except Exception as e:

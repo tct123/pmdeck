@@ -11,12 +11,8 @@ body {
     width: 100%;
     margin: 0px;
     padding: 0px;
-    opacity: 0.0;
+    color: red;
 
-}
-
-.scanning-body  {
-    opacity: 0;
 }
 
 /* Portrait layout (default) */
