@@ -37,6 +37,7 @@ html {
     position: fixed;
     top: 0;
     right: 0;
+    height: 5%;
 }
 
 #title-bar-btns > button {
@@ -78,6 +79,9 @@ div, span, p, h1, h2, h3, h4, h5, h6 {
     position: absolute;
     left: 0px;
     top: 5%;
+    overflow: hidden;
+    overflow-x: hidden;
+    overflow: scroll;
 }
 
 #deck-tabs {
@@ -99,10 +103,15 @@ div, span, p, h1, h2, h3, h4, h5, h6 {
 }
 
 #button-configurator {
-    background-color: azure;
+    background-color: cadetblue;
     width: 70%;
     height: 40%;
     position: absolute;
     left: 30%;
     top: 60%;
+}
+
+::-webkit-scrollbar 
+{
+    display: none;
 }
