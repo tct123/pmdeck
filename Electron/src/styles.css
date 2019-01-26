@@ -21,6 +21,13 @@ html {
     height: 36px;
 } */
 
+
+#top-bar {
+    -webkit-app-region: drag;
+    height: 5%;
+    background-color: blue;
+}
+
 #title-bar-btns {
     display: flex;
     flex-direction: row;
@@ -53,7 +60,6 @@ html, body {
 body {
     background-color: var(--primary-dark);
     font-family: 'Roboto', sans-serif;
-    -webkit-app-region: drag;
 }
 
 button {
@@ -62,4 +68,41 @@ button {
 
 div, span, p, h1, h2, h3, h4, h5, h6 {
     color: var(--text-color);
+}
+
+
+#actions {
+    background-color: aquamarine;
+    width: 30%;
+    height: 95%;
+    position: absolute;
+    left: 0px;
+    top: 5%;
+}
+
+#deck-tabs {
+    background-color: aqua;
+    width: 70%;
+    height: 5%;
+    position: absolute;
+    left: 30%;
+    top: 5%;
+}
+
+#deck-preview {
+    background-color: azure;
+    width: 70%;
+    height: 50%;
+    position: absolute;
+    left: 30%;
+    top: 10%;
+}
+
+#button-configurator {
+    background-color: azure;
+    width: 70%;
+    height: 40%;
+    position: absolute;
+    left: 30%;
+    top: 60%;
 }
