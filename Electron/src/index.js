@@ -24,7 +24,7 @@ const createWindow = () => {
     mainWindow.loadURL(`file://${__dirname}/index.html`)
 
     // Open the DevTools.
-    //mainWindow.webContents.openDevTools()
+    mainWindow.webContents.openDevTools()
 
     // Emitted when the window is closed.
     mainWindow.on('closed', () => {
@@ -33,6 +33,16 @@ const createWindow = () => {
         // when you should delete the corresponding element.
         mainWindow = null
     })
+
+    const { ipcMain } = require('electron')
+    
+    ipcMain.on('ondragstart', (event, filePath) => {
+        event.sender.startDrag({
+            file: filePath,
+            icon: ''
+        })
+    })
+
 }
 
 // This method will be called when Electron has finished

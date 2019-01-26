@@ -115,3 +115,22 @@ div, span, p, h1, h2, h3, h4, h5, h6 {
 {
     display: none;
 }
+
+#button-image {
+    background-color: gray;
+    width: 72px;
+    height: 72px;
+    top: 30px;
+    left: 30px;
+    position: relative;
+
+}
+
+.action {
+    height: 50px;
+    width: 100%;
+    position: relative;
+    background-color: red;
+    display: inline-flex;
+    flex-grow: 1;
+}

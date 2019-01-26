@@ -17,5 +17,58 @@ document.onreadystatechange = () => {
                 const window = remote.getCurrentWindow()
                 window.close()
             })
+
+
+        var holder = document.getElementById('button-image');
+
+        holder.ondragleave = () => {
+            console.log("NOT DRAGGING");
+            return false;
+        };
+
+        holder.ondragend = () => {
+            console.log("NOT DRAGGING");
+            return false;
+        };
+
+        holder.ondragover = function () {
+            console.log("DRAGGING");
+            return false;
+        };
+
+        holder.ondrop = (e) => {
+            e.preventDefault();
+            console.log(e);
+            for (let f of e.dataTransfer.files) {
+                console.log('File(s) you dragged here: ', f.path);
+            }
+            
+            return false;
+        };
+
+        const {ipcRenderer}=require('electron')
+
+        var actions = document.getElementsByClassName("action"); 
+        
+        for (let index = 0; index < actions.length; index++) {
+            const elem = actions[index];
+            
+            //elem.addEventListener('dragstart', function(e){
+            //    e.dataTransfer.setData('path', 'foo');
+            //});
+            
+            elem.ondragstart = (event) => {
+                event.preventDefault();
+                ipcRenderer.send('ondragstart', "/stuff/asd");
+            }
+            
+
+        }
+
+        
+
+        
+        
+
     }
 }
