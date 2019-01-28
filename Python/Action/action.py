@@ -23,7 +23,7 @@ class Action:
         self._draw()
         return
 
-    def _set_invisible(self):
+    def _set_invisible(self, space):
         self.is_visible = False
         self.on_invisible()
         return

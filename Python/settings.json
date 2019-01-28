@@ -1,5 +1,5 @@
 {
-  "DeckID": {
+  "cordova1": {
     "Settings": {
       "GridWidth":5,
       "GridHeight":3,
@@ -8,33 +8,35 @@
       "FullScreen":true,
       "SetLauncher":false
     },
-    "Buttons": {
+    "Actions": {
       "btnID":{
         "ActionType":"OpenFolder",
         "Args":{
           "FolderID":"Folder1"
         }
       },
-      "btn2":{
-        "ActionType":"CustomInternalPython",
-        "Args":{
-          "FolderLocation":"Actions/CustomWOW"
+      "MicOnOffAction": {
+        "ActionID": "MicOnOffAction",
+        "Args": {
         }
       },
-      "btn3":{
-        "ActionType":"CustomExternalPython",
-        "Args":{
-          "PythonPath":"python",
-          "FolderLocation":"Actions/CustomPip"
+      "MicOnOffPy": {
+        "ActionID": "MicOnOffPy",
+        "Args": {
+          "PythonInternal": true
         }
       }
+
     },
     "Folders": {
+      "root": [
+        "MicOnOffAction",
+        "MicOnOffPy"
+      ],
       "folderID":[
         "btnID",
         "btnFolder1",
-        "btnMute",
-        ""
+        "btnMute"
       ]
     }
   }

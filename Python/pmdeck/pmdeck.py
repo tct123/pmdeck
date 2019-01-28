@@ -26,7 +26,7 @@ class DeviceManager:
     def connector_listener(self):
         bind_ip = '0.0.0.0'
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind((bind_ip, 0))
+        self.server_socket.bind((bind_ip, 5000))
         self.server_socket.listen(5)  # max backlog of connections
         local_ip = get_ip()
         port = self.server_socket.getsockname()[1]
@@ -239,6 +239,7 @@ class Deck:
         try:
             self.client_socket.send(encoded)
         except Exception as e:
+            print(e)
             self.disconnect()
         return
 

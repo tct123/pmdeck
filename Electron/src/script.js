@@ -64,11 +64,29 @@ document.onreadystatechange = () => {
             
 
         }
-
-        
-
-        
-        
-
     }
 }
+
+function setKeyAction(deck_id, key_index, action_id) {
+    
+}
+
+function getActionList() {
+    
+    list = [{"action_id":"asdsa","action_icon":"asd","name":"open"}];
+    return list;
+}
+
+function sendKeyEvent(deck_id, key_index, is_pressed_or_released) {
+    
+}
+
+//Server side event
+function receiveKeyImage(deck_id, key_index, base64string) {
+    
+}
+
+
+
+
+

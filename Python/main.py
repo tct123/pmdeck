@@ -1,6 +1,7 @@
 from pmdeck import pmdeck
 from threading import Event
 
+import settings
 from Action.folder import Folder
 from Action.custom_action import create_custom_action
 import atexit
@@ -25,12 +26,12 @@ def key_callback(deck, key, status):
 
 def on_connected_callback(deck):
     deck.set_key_callback(key_callback)
-
+    # TODO if already connected, don't reset
     deck.reset()
 
-    root_folder = Folder(deck)
-    root_folder.set_action(12, create_custom_action(deck, "MicOnOffAction"))
-    root_folder.set_action(0, create_custom_action(deck, "MicOnOffPy"))
+    root_folder = Folder(deck, "root")
+    # root_folder.set_action(12, create_custom_action(deck, "MicOnOffAction"))
+    # root_folder.set_action(0, create_custom_action(deck, "MicOnOffPy"))
     # root_folder.set_action(14, CallibrateFootAction(deck))
 
     # root_folder.set_action(1, AutoHotkeyAction(deck, "Action001"))
@@ -44,21 +45,23 @@ def on_connected_callback(deck):
 # Decorators
 
 
-def callback(icon):
-    image = Image.new('RGBA', (128,128), (255,255,255,255)) # create new image
-    percent = 100
-    while True:
-        img = image.copy()
-        d = ImageDraw.Draw(img)
-        d.rectangle([0, 128, 128, 128-(percent * 128) / 100], fill='blue')
-        icon.icon = img
-        time.sleep(1)
-        percent -= 5
-        if percent < 0:
-            percent = 100
+# def callback(icon):
+#     image = Image.new('RGBA', (128,128), (255,255,255,255)) # create new image
+#     percent = 100
+#     while True:
+#         img = image.copy()
+#         d = ImageDraw.Draw(img)
+#         d.rectangle([0, 128, 128, 128-(percent * 128) / 100], fill='blue')
+#         icon.icon = img
+#         time.sleep(1)
+#         percent -= 5
+#         if percent < 0:
+#             percent = 100
 
 
 if __name__ == "__main__":
+
+    settings.read_settings()
 
     manager = pmdeck.DeviceManager()
 
