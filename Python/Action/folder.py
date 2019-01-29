@@ -11,6 +11,7 @@ class Folder:
         # List of Actions
         # self.actions = [Action(deck)] * 15
         self.deck = deck
+        self.id = folder_id
         # read settings, get button id's with that deck and folder id
         self.actions = []
         acts = settings.get_actions_for_folder(deck.id, folder_id)
@@ -23,6 +24,9 @@ class Folder:
         if not 14 >= space_index >= 0:
             print("Space index error: " + space_index)
             return
+        # TODO save it in settings.json
+
+        settings.set_action_for_folder(self.deck.id, self.id, space_index, action.id)
         self.actions[space_index] = action
 
     def open(self):

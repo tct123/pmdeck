@@ -21,4 +21,8 @@ def get_actions_for_folder(deck_id, folder_id):
 def get_action_settings(deck_id, action_id):
     return settings[deck_id]["Actions"][action_id]
 
+def set_action_for_folder(deck_id, folder_id, key_index, action_id):
+    settings[deck_id]["Folders"][folder_id][key_index]["action_id"] = action_id;
+    write_settings()
+    return true
 
