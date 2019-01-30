@@ -86,7 +86,7 @@
                     if (service.txtRecord.uid == paired_device_id) {
                         connect(service.ipv4Addresses[0], service.port, function (socket) {
                             sendString(socket, "CONN:" + device.uuid + ";");
-
+                            accepted_socket = socket;
                         });
                     }
                 } else {
@@ -272,13 +272,17 @@
     function onKeyPressed(key) {
         console.log("Pressed Key " + key)
         //buttons[key].style.backgroundColor = "red";
-        sendString("BTNEVENT:" + key + ",0;")
+        if (accepted_socket != null) {
+            sendString(accepted_socket, "BTNEVENT:" + key + ",0;")
+        }
     };
 
     function onKeyReleased(key) {
         console.log("Released Key " + key)
         //buttons[key].style.backgroundColor = "blue";
-        sendString("BTNEVENT:" + key + ",1;")
+        if (accepted_socket != null) {
+            sendString(accepted_socket, "BTNEVENT:" + key + ",1;")
+        }
     };
 
 
