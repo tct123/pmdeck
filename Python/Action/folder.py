@@ -1,12 +1,11 @@
 
 from Action.action import Action
 from Action.custom_action import create_custom_action
-import settings
 
 
 class Folder:
 
-    def __init__(self, deck, folder_id):
+    def __init__(self, settings, deck, folder_id):
         
         # List of Actions
         # self.actions = [Action(deck)] * 15
@@ -16,7 +15,8 @@ class Folder:
         self.actions = []
         acts = settings.get_actions_for_folder(deck.id, folder_id)
         for a in acts:
-            self.actions.append(create_custom_action(deck, a["ActionID"]))
+            config = settings.get_action_settings(deck.id, a)
+            self.actions.append(create_custom_action(deck, a, config))
 
         return
 
@@ -30,7 +30,9 @@ class Folder:
         self.actions[space_index] = action
 
     def open(self):
-        self.deck.current_folder.close()
+        if hasattr(self.deck, "current_folder"):
+            self.deck.current_folder.close()
+
         # for each action in actions, draw action
         for i in range(0, len(self.actions)):
             if self.actions[i]:

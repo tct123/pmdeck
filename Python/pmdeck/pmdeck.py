@@ -2,6 +2,7 @@ import json
 import socket
 import threading
 import base64
+import traceback
 from random import randint
 
 import zeroconf
@@ -26,7 +27,7 @@ class DeviceManager:
     def connector_listener(self):
         bind_ip = '0.0.0.0'
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.server_socket.bind((bind_ip, 5000))
+        self.server_socket.bind((bind_ip, 0))
         self.server_socket.listen(5)  # max backlog of connections
         local_ip = get_ip()
         port = self.server_socket.getsockname()[1]
@@ -34,9 +35,9 @@ class DeviceManager:
         print('Listening on {}:{}'.format(local_ip, port))
 
         print("Registering Service")
-        service_name = "{}:{}._pmdeck._tcp.local.".format(local_ip, str(port))
-        service_type = "_pmdeck._tcp.local."
-        desc = {}
+        service_name = "{}:{}._pmdeckdiscovery._tcp.local.".format(local_ip, str(port))
+        service_type = "_pmdeckdiscovery._tcp.local."
+        desc = {"uid": get_uid()}
         info = zeroconf.ServiceInfo(service_type,
                                     service_name,
                                     socket.inet_aton(local_ip), port, 0, 0,
@@ -135,44 +136,41 @@ class Deck:
                 try:
                     data = self.client_socket.recv(1024)
                     stream = data.decode('utf-8')
-                    if (len(stream)> 1):
+                    if len(stream) > 1:
                         print("Received: {}".format(stream))
                     for msg in list(filter(None, stream.split(';'))):
                         spl = msg.split(":")
                         cmd = spl[0]
-                        if(cmd == "PING"):
+                        if cmd == "PING":
                             self.send("PONG;")
 
-                        elif(cmd == "PONG"):
+                        elif cmd == "PONG":
                             pass
 
-                        elif (cmd == "CLOSE"):
+                        elif cmd == "CLOSE":
                             self.disconnect()
                             return
 
-                        elif(cmd == "BTNEVENT"):
+                        elif cmd == "BTNEVENT":
                             args = spl[1].split(",")
                             self.on_key_status_change(args[0], args[1])
 
-                        elif(cmd == "CONN"):
+                        elif cmd == "CONN":
                             args = spl[1].split(",")
                             self.id = args[0]
                             if self.id in self.deviceManager.Decks:
-                                password = self.deviceManager.Decks[self.id]["pass"]
-                                self.send("CONN:{},{};".format(get_uid(), password))
+                                self.send("CONN:{};".format(get_uid()))
+                                self.reset()
+                                self.deviceManager.on_connected(self)
                             else:
                                 self.disconnect()
 
-                        elif(cmd == "CONNACCEPT"):
-                            self.reset()
-                            self.deviceManager.on_connected(self)
-
-                        elif(cmd == "SYNCREQ"):
+                        elif cmd == "SYNCREQ":
                             args = spl[1].split(",")
                             self.id = args[0]
                             self.send("SYNCTRY:{},{};".format(get_uid(), randint(100000, 999999)))
 
-                        elif(cmd == "SYNCACCEPT"):
+                        elif cmd == "SYNCACCEPT":
                             args = spl[1].split(",")
                             uid = args[0]
                             password = args[1]
@@ -215,6 +213,7 @@ class Deck:
 
         print("Deck Disconnected")
         # TODO
+        traceback.print_exc()
         self.client_socket.close()
 
         self.disconnected = True

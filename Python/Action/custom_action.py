@@ -4,7 +4,7 @@ from Action.Python3.python3_action import Python3Action
 import os
 
 
-def create_custom_action(deck, action_id):
+def create_custom_action(deck, action_id, action_config):
 
     # check if its a Autohotkey or Python Action
     custom_action_folder_path = "Action/CustomActions/"

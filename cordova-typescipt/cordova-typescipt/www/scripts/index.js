@@ -8,6 +8,7 @@
     document.addEventListener( 'deviceready', onDeviceReady.bind( this ), false );
 
     var paired = false;
+    var paired_device_id = "";
     var pass = "";
 
     //Setup Buttons
@@ -23,28 +24,106 @@
 
         var storage = window.localStorage;
 
-        var paired = storage.getItem("paired");
-        if (paired == null) {
+        paired = storage.getItem("paired");
+        if (paired == null || paired == "false") {
             paired = false;
+        } else {
+            paired = true;
         }
-        var pass = storage.getItem("pass");
+
+        paired_device_id = storage.getItem("paired_device_id");
+        if (paired_device_id == null) {
+            paired_device_id = "";
+        }
+        pass = storage.getItem("pass");
         if (pass == null) {
             pass = "";
         }
-        var paired = storage.getItem("grid_x");
+        grid_x = storage.getItem("grid_x");
         if (grid_x == null) {
             grid_x = 3;
         }
-        var paired = storage.getItem("grid_y");
+        grid_y = storage.getItem("grid_y");
         if (grid_y == null) {
             grid_y = 5;
         }
 
+        storage.setItem("paired", "true");
+        paired = true;
+        paired_device_id = "T2sWMJ8aR1SNBSuUg7xxUHA9M8a";
+
+
+
+        var uuid = device.uuid;
+
         //storage.setItem(key, value)
-
-
-
         setupButtons();
+
+        var zeroconf = cordova.plugins.zeroconf;
+
+        if (paired) {
+            console.log("watching");
+            zeroconf.watch('_pmdeckdiscovery._tcp.', 'local.', function (result) {
+                var action = result.action;
+                var service = result.service;
+                if (action == 'added') {
+                    console.log('service added', service);
+                } else if (action == 'resolved') {
+                    console.log('service resolved', service);
+                    /* service : {
+                    'domain' : 'local.',
+                    'type' : '_http._tcp.',
+                    'name': 'Becvert\'s iPad',
+                    'port' : 80,
+                    'hostname' : 'ipad-of-becvert.local',
+                    'ipv4Addresses' : [ '192.168.1.125' ], 
+                    'ipv6Addresses' : [ '2001:0:5ef5:79fb:10cb:1dbf:3f57:feb0' ],
+                    'txtRecord' : {
+                        'foo' : 'bar'
+                    } */
+                    console.log(service.txtRecord);
+                    console.log(device.uuid);
+                    if (service.txtRecord.uid == paired_device_id) {
+                        connect(service.ipv4Addresses[0], service.port, function (socket) {
+                            sendString(socket, "CONN:" + device.uuid + ";");
+
+                        });
+                    }
+                } else {
+                    console.log('service removed', service);
+                }
+            });
+        } else {
+            //watch for pairing
+            console.log("watching for pairing");
+            zeroconf.watch('_pmdeckpairing._tcp.', 'local.', function (result) {
+                var action = result.action;
+                var service = result.service;
+                if (action == 'added') {
+                    console.log('service added', service);
+                } else if (action == 'resolved') {
+                    console.log('service resolved', service);
+                    /* service : {
+                    'domain' : 'local.',
+                    'type' : '_http._tcp.',
+                    'name': 'Becvert\'s iPad',
+                    'port' : 80,
+                    'hostname' : 'ipad-of-becvert.local',
+                    'ipv4Addresses' : [ '192.168.1.125' ], 
+                    'ipv6Addresses' : [ '2001:0:5ef5:79fb:10cb:1dbf:3f57:feb0' ],
+                    'txtRecord' : {
+                        'foo' : 'bar'
+                    } */
+                    console.log(service.txtRecord);
+                    tryuid = service.txtRecord.uid;
+
+                    connect(service.ipv4Addresses[0], service.port);
+                } else {
+                    console.log('service removed', service);
+                }
+            });
+        }
+        
 
         cordova.plugins.barcodeScanner.scan(
             function (result) {
@@ -55,6 +134,8 @@
 
                 var spl = result.text.split(":");
                 connect(spl[0], spl[1]);
+
+                //Connect and if not paired, pair
 
             },
             function (error) {
@@ -73,50 +154,35 @@
                 disableSuccessBeep: false // iOS and Android
             }
         );
-
-
-
-
         
     };
 
-    var socket = null;
+    var openSockets = []
 
-    function connect(ip, port) {
-
-        //TODO Disconnect current socket if exists
-
-        socket = new Socket();
-
-        socket.onData = onData;
-
+    function connect(ip, port, onSuccess) {
+        var socket = new Socket();
+        socket.onData = function (data) {
+            onData(socket, data);
+        };
         socket.onError = function (errorMessage) {
-            // invoked after error occurs during connection
             console.log("ERROR: " + errorMessage);
-
         };
         socket.onClose = function (hasError) {
-            // invoked after connection close
             console.log("CLOSE: " + hasError);
-
         };
-
         socket.open(
             ip,
             port,
             function () {
-                console.log("connected");
-                sendString("CONN:cordova1,123456;");
+                onSuccess(socket)
             },
             function (errorMessage) {
-                // invoked after unsuccessful opening of socket
                 console.log(errorMessage);
             }
         );
-
     }
 
-    function sendString(str) {
+    function sendString(socket, str) {
         var data = new Uint8Array(str.length);
         for (var i = 0; i < data.length; i++) {
             data[i] = str.charCodeAt(i);
@@ -126,7 +192,9 @@
 
     var leftover = "";
 
-    function onData(data) {
+    var accepted_socket = null;
+
+    function onData(socket, data) {
         var stream = leftover + (new TextDecoder("utf-8").decode(data));
         console.log(leftover);
         console.log(stream);
@@ -142,19 +210,24 @@
                 var cmd = spl[0];
                 switch (cmd) {
                     case "IMAGE":
-                        var args = spl[1].split(",");
-                        var btn = buttons[args[0]]
-                        var url = "url('data:image/png;base64," + args[1] + "')";
-                        console.log(url);
-                        //btn.style.backgroundImage = "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')";
-                        //btn.css("background-image", "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')");
-                        //btn.css("background-image", url);
-                        //btn.style.backgroundImage = url;
-                        btn.style.backgroundImage = url;
+                        if (paired) {
+                            var args = spl[1].split(",");
+                            var btn = buttons[args[0]]
+                            var url = "url('data:image/png;base64," + args[1] + "')";
+                            console.log(url);
+                            //btn.style.backgroundImage = "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')";
+                            //btn.css("background-image", "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')");
+                            //btn.css("background-image", url);
+                            //btn.style.backgroundImage = url;
+                            btn.style.backgroundImage = url;
+                        }
                         break;
                     case "CONN":
                         var args = spl[1].split(",")
-                        sendString("CONNACCEPT;");
+                        //upgrade this connection to accepted one
+                        accepted_socket = socket
+                        zeroconf.close();
+                        sendString(socket, "CONNACCEPT;");
                     default:
                         break;
                 }
@@ -165,8 +238,6 @@
         } else {
             leftover = stream;
         }
-
-
     }
 
     function setupButtons() {
