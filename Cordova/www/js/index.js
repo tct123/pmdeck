@@ -131,72 +131,9 @@ var app = {
                     'txtRecord' : {
                         'foo' : 'bar'
                     } */
-                    var socket = new Socket();
 
-                    socket.onData = function(data) {
-                        // invoked after new batch of data is received (typed array of bytes Uint8Array)
-                        
-                        stream = new TextDecoder("utf-8").decode(data);
-                        stream.split(';').filter(v=>v!='').forEach(function(msg) {
-                            console.log(msg);
-                            var spl = msg.split(":");
-                            var cmd = spl[0];
-                            switch (cmd) {
-                                case "IMAGE":
-                                    var args = spl[1].split(",");
-                                    var btn = buttons[args[0]]
-                                    url = "data:image/png;base64," + args[1];
-                                    btn.style.backgroundImage = "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')";
-                                    break;
-                                case "CONN":
-                                    var args = spl[1].split(",")
-                                    var dataString = "CONNACCEPT;";
-                                    var data = new Uint8Array(dataString.length);
-                                    for (var i = 0; i < data.length; i++) {
-                                        data[i] = dataString.charCodeAt(i);
-                                    }
-                                    socket.write(data);
-
-                                default:
-                                    break;
-                            }
-                        });
-
-                    };
-                    socket.onError = function(errorMessage) {
-                        // invoked after error occurs during connection
-                        console.log("ERROR: "+errorMessage);
-                        
-                    };
-                    socket.onClose = function(hasError) {
-                        // invoked after connection close
-                        console.log("CLOSE: "+hasError);
-                        
-                    };
-
-                    socket.open(
-                        service.ipv4Addresses[0], 
-                        service.port,
-                        function() {
-                            console.log("connected");
-                            if(paired){
-                                var dataString = "CONN:cordova1;";
-                                var data = new Uint8Array(dataString.length);
-                                for (var i = 0; i < data.length; i++) {
-                                    data[i] = dataString.charCodeAt(i);
-                                }
-                                socket.write(data);
-                            }else{
-                                // syncTrying = false;
-                                // syncPass = "";
-                                // con.sendMessage("SYNCREQ:$uid;");
-                            }
-                        },
-                        function(errorMessage) {
-                          // invoked after unsuccessful opening of socket
-                          console.log(errorMessage);
-                        }
-                    );
+                
+                    
 
 
                 } else {
