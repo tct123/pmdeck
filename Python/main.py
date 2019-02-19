@@ -1,4 +1,4 @@
-from pmdeck import pmdeck
+from pmdeck import manager
 from threading import Event
 
 import settings
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     s = settings.Settings()
     s.read_settings()
 
-    manager = pmdeck.DeviceManager()
+    manager = manager.DeviceManager()
 
 
     def key_callback(deck, key, status):
