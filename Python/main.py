@@ -1,36 +1,11 @@
-from pmdeck import manager
-from threading import Event
-
-import settings
-from Action.folder import Folder
-from Action.custom_action import create_custom_action
-import atexit
-import threading
-import time
-import sys
-import os
-
-import pystray
 from pystray import Icon, MenuItem, Menu
 from PIL import Image, ImageDraw
-import time
 
-# Decorators
+from pmdeck import manager
+import settings
+from Action.folder import Folder
 
-
-def callback(icon):
-    image = Image.new('RGBA', (128,128), (255,255,255,255)) # create new image
-    percent = 100
-    while True:
-        img = image.copy()
-        d = ImageDraw.Draw(img)
-        d.rectangle([0, 128, 128, 128-(percent * 128) / 100], fill='blue')
-        icon.icon = img
-        time.sleep(1)
-        percent -= 5
-        if percent < 0:
-            percent = 100
-
+import os
 
 if __name__ == "__main__":
 
@@ -38,7 +13,6 @@ if __name__ == "__main__":
     s.read_settings()
 
     manager = manager.DeviceManager()
-
 
     def key_callback(deck, key, status):
 
@@ -70,20 +44,15 @@ if __name__ == "__main__":
 
     manager.listen_connections()
 
-    # Event().wait()
-
-    state = False
-
     def test_button():
         print("test button")
 
-    def open_ui_button(icon, item):
+    def open_ui_button():
         print("opening ui")
 
     def quit_button():
         print("quitting")
-        sys.exit(0)
-
+        os._exit(0)
 
     # Update the state in `on_clicked` and return the new state in
     # a `checked` callable
@@ -99,5 +68,3 @@ if __name__ == "__main__":
             'Quit',
             quit_button)))\
         .run()
-
-
