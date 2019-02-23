@@ -1,11 +1,13 @@
 from pystray import Icon, MenuItem, Menu
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from pmdeck import manager
 import settings
 from Action.folder import Folder
+from do_threaded import do_threaded
 
 import os
+from threading import Event
 
 if __name__ == "__main__":
 
@@ -54,9 +56,9 @@ if __name__ == "__main__":
         print("quitting")
         os._exit(0)
 
-    # Update the state in `on_clicked` and return the new state in
-    # a `checked` callable
-    Icon('test', Image.new('RGBA', (128, 128), (255, 255, 255, 255)), menu=Menu(
+    image = Image.open("icon.png")
+
+    tray_app = Icon('test', image, menu=Menu(
         MenuItem(
             'Test',
             test_button),
@@ -66,5 +68,8 @@ if __name__ == "__main__":
             default=True),
         MenuItem(
             'Quit',
-            quit_button)))\
-        .run()
+            quit_button)))
+
+    # do_threaded(tray_app.run)
+    tray_app.run()
+    # Event().wait()
