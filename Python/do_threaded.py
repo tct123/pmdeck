@@ -2,7 +2,9 @@ import threading
 
 
 def do_threaded(func):
-    threading.Thread(
+    t = threading.Thread(
         target=func
-    ).start()
-    return
+    )
+    t.setDaemon(True)
+    t.start()
+    return t

@@ -1,6 +1,6 @@
 import json
 import socket
-import threading
+from do_threaded import do_threaded
 
 import zeroconf
 
@@ -54,9 +54,7 @@ class DeviceManager:
         return
 
     def listen_connections(self):
-        self.connector_thread: threading.Thread = threading.Thread(
-            target=self.connector_listener
-        ).start()
+        self.connector_thread = do_threaded(self.connector_listener)
         return
 
     def stop_listening_connections(self):

@@ -15,23 +15,21 @@ from pystray import Icon, MenuItem, Menu
 from PIL import Image, ImageDraw
 import time
 
-
-
 # Decorators
 
 
-# def callback(icon):
-#     image = Image.new('RGBA', (128,128), (255,255,255,255)) # create new image
-#     percent = 100
-#     while True:
-#         img = image.copy()
-#         d = ImageDraw.Draw(img)
-#         d.rectangle([0, 128, 128, 128-(percent * 128) / 100], fill='blue')
-#         icon.icon = img
-#         time.sleep(1)
-#         percent -= 5
-#         if percent < 0:
-#             percent = 100
+def callback(icon):
+    image = Image.new('RGBA', (128,128), (255,255,255,255)) # create new image
+    percent = 100
+    while True:
+        img = image.copy()
+        d = ImageDraw.Draw(img)
+        d.rectangle([0, 128, 128, 128-(percent * 128) / 100], fill='blue')
+        icon.icon = img
+        time.sleep(1)
+        percent -= 5
+        if percent < 0:
+            percent = 100
 
 
 if __name__ == "__main__":
@@ -70,33 +68,36 @@ if __name__ == "__main__":
 
     manager.set_on_connected_callback(on_connected_callback)
 
-
     manager.listen_connections()
 
-    Event().wait()
+    # Event().wait()
 
-    # state = False
-    #
-    # def on_clicked(icon, item):
-    #     global state
-    #     print("Blah")
-    #     state = not state
-    #
-    #
+    state = False
+
+    def test_button():
+        print("test button")
+
+    def open_ui_button(icon, item):
+        print("opening ui")
+
+    def quit_button():
+        print("quitting")
+        sys.exit(0)
+
+
     # Update the state in `on_clicked` and return the new state in
     # a `checked` callable
-    # Icon('test', Image.new('RGBA', (128,128), (255,255,255,255)), menu=Menu(
-    #     MenuItem(
-    #         'Sync New',
-    #         on_clicked),
-    #     MenuItem(
-    #         'Restart',
-    #         on_clicked,
-    #         default=True),
-    #     MenuItem(
-    #         'Quit',
-    #         on_clicked,
-    #         checked=lambda item: state) )
-    #     ).run()
+    Icon('test', Image.new('RGBA', (128, 128), (255, 255, 255, 255)), menu=Menu(
+        MenuItem(
+            'Test',
+            test_button),
+        MenuItem(
+            'Open UI',
+            open_ui_button,
+            default=True),
+        MenuItem(
+            'Quit',
+            quit_button)))\
+        .run()
 
 

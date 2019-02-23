@@ -1,8 +1,9 @@
 import socket
-import threading
 import base64
 import traceback
 from random import randint
+import threading
+from do_threaded import do_threaded
 
 from pmdeck.get_uid import get_uid
 
@@ -17,6 +18,7 @@ class Deck:
         self.disconnected = False
         self.key_count_x = 3
         self.key_count_y = 2
+        self.read_thread: threading.Thread = None
 
         return
 
@@ -79,8 +81,7 @@ class Deck:
                     self.disconnect()
                     return
 
-        self.read_thread = threading.Thread(target=listener)
-        self.read_thread.start()
+        self.read_thread = do_threaded(listener)
 
         # def pinger():
         #     while not self.disconnected:
