@@ -1,6 +1,3 @@
-import subprocess
-from subprocess import PIPE
-import win32gui
 import os
 
 from pystray import Icon, MenuItem, Menu
@@ -10,8 +7,6 @@ from UI import UI
 from pmdeck import manager
 import settings
 from Action.folder import Folder
-from do_threaded import do_threaded
-from windowmgr import WindowMgr
 
 if __name__ == "__main__":
 

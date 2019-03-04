@@ -1,5 +1,8 @@
 import win32gui
+import win32process
 import re
+
+from win32.lib import win32con
 
 
 class WindowMgr:
@@ -23,8 +26,15 @@ class WindowMgr:
         self._handle = None
         win32gui.EnumWindows(self._window_enum_callback, wildcard)
 
+    def find_window_pid(self, pid):
+        def callback(hwnd, pid):
+            found_pid = win32process.GetWindowThreadProcessId(hwnd)
+            if found_pid == pid:
+                self._handle = hwnd
+
+        win32gui.EnumWindows(callback, pid)
+
     def set_foreground(self):
         """put the window in the foreground"""
+        win32gui.ShowWindow(self._handle, win32con.SW_NORMAL)
         win32gui.SetForegroundWindow(self._handle)
-
-
