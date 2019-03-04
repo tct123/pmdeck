@@ -1,3 +1,6 @@
+import subprocess
+from subprocess import PIPE
+
 from pystray import Icon, MenuItem, Menu
 from PIL import Image
 
@@ -49,8 +52,32 @@ if __name__ == "__main__":
     def test_button():
         print("test button")
 
+    ui_process = None
+
     def open_ui_button():
         print("opening ui")
+
+        global ui_process
+
+        if not ui_process:
+            ui_process = subprocess.Popen("npm start --prefix ..\\Electron", shell=True, stdin=PIPE, stdout=PIPE, stderr=PIPE, close_fds=True)
+
+            def listen_out():
+                while True:
+                    line = ui_process.stdout.readline()
+                    if len(line) > 0:
+                        print(line)
+
+            def listen_err():
+                while True:
+                    line = ui_process.stderr.readline()
+                    if len(line) > 0:
+                        print(line)
+
+            do_threaded(listen_out)
+            do_threaded(listen_err)
+
+        return
 
     def quit_button():
         print("quitting")
@@ -70,6 +97,4 @@ if __name__ == "__main__":
             'Quit',
             quit_button)))
 
-    # do_threaded(tray_app.run)
     tray_app.run()
-    # Event().wait()
