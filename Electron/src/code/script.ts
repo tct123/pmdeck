@@ -63,6 +63,12 @@ document.onreadystatechange = () => {
 
         });
 
+        ipcRenderer.on('ping', (event:any, arg:any) => {
+            console.log(arg)
+            
+
+         })
+
     }
 }
 
@@ -84,6 +90,15 @@ function sendKeyEvent(deck_id:string, key_index:number, is_pressed_or_released:s
 function receiveKeyImage(deck_id:string, key_index:number, base64string:string) {
     
 }
+
+function receiveDeckSize(deck_id:string, dim_x:number, dim_y:number) {
+
+}
+
+function sendDeckSize(deck_id:string, dim_x:number, dim_y:number) {
+
+}
+
 
 
 

@@ -41,3 +41,4 @@ app.on("activate", () => {
   }
 });
 
+import "./server-communication";

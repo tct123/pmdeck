@@ -1,10 +1,7 @@
 from Action.action import Action
 import os
 import subprocess
-from do_threaded import do_threaded
-
-from watchdog.observers import Observer
-from watchdog.events import FileModifiedEvent
+from Util.do_threaded import do_threaded
 
 
 class Python3Action(Action):

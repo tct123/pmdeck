@@ -1,6 +1,6 @@
 import json
 import socket
-from do_threaded import do_threaded
+from Util.do_threaded import do_threaded
 
 import zeroconf
 

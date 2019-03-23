@@ -3,3 +3,4 @@ zeroconf
 netifaces
 python-baseconv
 watchdog
+zerorpc
