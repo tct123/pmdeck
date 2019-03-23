@@ -1,5 +1,5 @@
-@import url('../node_modules/material-design-icons-iconfont/dist/material-design-icons.css');
-@import url('../node_modules/typeface-roboto/index.css');
+@import url('../../node_modules/material-design-icons-iconfont/dist/material-design-icons.css');
+@import url('../../node_modules/typeface-roboto/index.css');
 
 html {
     --primary-darker: #1B1725;

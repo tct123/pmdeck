@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>PMDECK</title>
-    <link rel="stylesheet" type="text/css" href="styles.css" >
+    <link rel="stylesheet" type="text/css" href="../styles/styles.css" >
   </head>
   <body>
     <div id="top-bar">
@@ -25,12 +25,16 @@
     <div id="deck-preview"></div>
 
     <div id="button-configurator">
-      <div id="button-image">
-
-      </div>
-
+      <div id="button-image"></div>
     </div>
 
-    <script src="script.js" type="module"></script>
+    <script>
+      require('../../dist/renderer.js')
+      require('../../dist/script.js')
+    </script>
   </body>
 </html>
+
+
+
+

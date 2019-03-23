@@ -39,8 +39,9 @@ document.onreadystatechange = () => {
         holder.ondrop = (e) => {
             e.preventDefault();
             console.log(e);
-            for (let f of e.dataTransfer.files) {
-                console.log('File(s) you dragged here: ', f.path);
+            for(let i = 0;i<e.dataTransfer.files.length;i++){
+                let file = e.dataTransfer.files[i];
+                console.log('File(s) you dragged here: ', file.path);
             }
             
             return false;
@@ -48,14 +49,13 @@ document.onreadystatechange = () => {
 
         const {ipcRenderer}=require('electron')
 
-        var actions = document.getElementsByClassName("action"); 
+        let actions = Array.from(<HTMLScriptElement[]><any>document.getElementsByClassName("action")); 
         
         actions.forEach(elem => {
             
             //elem.addEventListener('dragstart', function(e){
             //    e.dataTransfer.setData('path', 'foo');
             //});
-            
             elem.ondragstart = (event) => {
                 event.preventDefault();
                 ipcRenderer.send('ondragstart', "/stuff/asd");
@@ -66,22 +66,22 @@ document.onreadystatechange = () => {
     }
 }
 
-function setKeyAction(deck_id, key_index, action_id) {
+function setKeyAction(deck_id:string, key_index:number, action_id:string) {
     
 }
 
 function getActionList() {
     
-    list = [{"action_id":"asdsa","action_icon":"asd","name":"open"}];
+    let list = [{"action_id":"asdsa","action_icon":"asd","name":"open"}];
     return list;
 }
 
-function sendKeyEvent(deck_id, key_index, is_pressed_or_released) {
+function sendKeyEvent(deck_id:string, key_index:number, is_pressed_or_released:string) {
     
 }
 
 //Server side event
-function receiveKeyImage(deck_id, key_index, base64string) {
+function receiveKeyImage(deck_id:string, key_index:number, base64string:string) {
     
 }
 
