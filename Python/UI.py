@@ -13,14 +13,13 @@ class UI:
     def __init__(self):
         self.ui_process = None
         self.out_listener = None
-        self.err_listener = None
         self.window_manager = WindowMgr()
 
         self.create_ui()
 
     def create_ui(self):
         self.ui_process = subprocess.Popen("npm start --prefix ..\\Electron", shell=True, close_fds=True,
-                                           stdin=PIPE, stdout=PIPE, stderr=PIPE)
+                                           stdout=PIPE)
 
         def listen_out():
             while True:
@@ -37,15 +36,10 @@ class UI:
                             args = spl[1].split(",")
                             print("Electron Started com server " + args[0])
                             UICommunicator(int(args[0]))
+                            return 
 
-        def listen_err():
-            while True:
-                line = self.ui_process.stderr.readline()
-                if len(line) > 0:
-                    print(line)
 
         self.out_listener = do_threaded(listen_out)
-        self.err_listener = do_threaded(listen_err)
 
     def focus_or_create_ui(self):
         try:
@@ -72,13 +66,14 @@ class UICommunicator:
         while True:
             data = self.socket.recv(1024)
             stream = data.decode('utf-8')
-            print("Received from UI:{}".format(stream))
-            for msg in list(filter(None, stream.split(';'))):
-                spl = msg.split(":")
-                cmd = spl[0]
+            if len(stream) > 0:
+                print("Received from UI:{}".format(stream))
+                for msg in list(filter(None, stream.split(';'))):
+                    spl = msg.split(":")
+                    cmd = spl[0]
 
-                if cmd == "PING":
-                    self.send_message("PONG;")
+                    if cmd == "PING":
+                        self.send_message("PONG;")
 
 
 
