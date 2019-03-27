@@ -5,7 +5,7 @@ from random import randint
 import threading
 from Util.do_threaded import do_threaded
 
-from pmdeck.get_uid import get_uid
+from Util.get_uid import get_uid
 
 
 class Deck:

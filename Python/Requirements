@@ -4,3 +4,5 @@ netifaces
 python-baseconv
 watchdog
 zerorpc
+
+livejson

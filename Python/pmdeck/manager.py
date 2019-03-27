@@ -4,8 +4,8 @@ from Util.do_threaded import do_threaded
 
 import zeroconf
 
-from pmdeck.get_uid import get_uid
-from pmdeck.get_ip import get_ip
+from Util.get_uid import get_uid
+from Util.get_ip import get_ip
 from pmdeck.deck import Deck
 
 

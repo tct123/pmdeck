@@ -1,10 +1,8 @@
 import subprocess
 from subprocess import PIPE
 
-import zerorpc
-
 from Util.do_threaded import do_threaded
-from windowmgr import WindowMgr
+from Util.windowmgr import WindowMgr
 
 import socket
 
@@ -36,7 +34,7 @@ class UI:
                             args = spl[1].split(",")
                             print("Electron Started com server " + args[0])
                             UICommunicator(int(args[0]))
-                            return 
+                            return
 
 
         self.out_listener = do_threaded(listen_out)
