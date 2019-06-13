@@ -100,6 +100,16 @@ div, span, p, h1, h2, h3, h4, h5, h6 {
     position: absolute;
     left: 30%;
     top: 10%;
+    display: inline-grid;
+}
+
+.button {
+    background-color: bisque;
+    width: 5%;
+    height: 5%;
+    position: relative;
+    left: 1%;
+    top: 1%;
 }
 
 #button-configurator {

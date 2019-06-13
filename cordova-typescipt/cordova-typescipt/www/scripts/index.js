@@ -157,7 +157,7 @@
         
     };
 
-    var openSockets = []
+    var openSockets = [];
 
     function connect(ip, port, onSuccess) {
         var socket = new Socket();
@@ -212,7 +212,7 @@
                     case "IMAGE":
                         if (paired) {
                             var args = spl[1].split(",");
-                            var btn = buttons[args[0]]
+                            var btn = buttons[args[0]];
                             var url = "url('data:image/png;base64," + args[1] + "')";
                             console.log(url);
                             //btn.style.backgroundImage = "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')";
@@ -225,7 +225,7 @@
                     case "CONN":
                         var args = spl[1].split(",")
                         //upgrade this connection to accepted one
-                        accepted_socket = socket
+                        accepted_socket = socket;
                         zeroconf.close();
                         sendString(socket, "CONNACCEPT;");
                     default:
@@ -245,18 +245,18 @@
         var widthPercent = 100 / grid_x;
         var buttonCount = grid_x * grid_y;
 
-        var buttonContainer = document.getElementById("buttonContainer")
-        buttonContainer.innerHTML = ""
-        buttons = []
+        var buttonContainer = document.getElementById("buttonContainer");
+        buttonContainer.innerHTML = "";
+        buttons = [];
         for (let i = 0; i < buttonCount; i++) {
-            var btn = document.createElement("BUTTON")
+            var btn = document.createElement("BUTTON");
             btn.classList.add("button-wrapper");
             btn.classList.add("button");
             btn.style.width = widthPercent + "%";
             btn.style.height = heightPercent + "%";
             btn.addEventListener("touchstart", onKeyPressed.bind(this, i), false);
             btn.addEventListener("touchend", onKeyReleased.bind(this, i), false);
-            buttons.push(btn)
+            buttons.push(btn);
             buttonContainer.appendChild(btn);
         }
     }
@@ -270,18 +270,18 @@
     };
 
     function onKeyPressed(key) {
-        console.log("Pressed Key " + key)
+        console.log("Pressed Key " + key);
         //buttons[key].style.backgroundColor = "red";
         if (accepted_socket != null) {
-            sendString(accepted_socket, "BTNEVENT:" + key + ",0;")
+            sendString(accepted_socket, "BTNEVENT:" + key + ",0;");
         }
     };
 
     function onKeyReleased(key) {
-        console.log("Released Key " + key)
+        console.log("Released Key " + key);
         //buttons[key].style.backgroundColor = "blue";
         if (accepted_socket != null) {
-            sendString(accepted_socket, "BTNEVENT:" + key + ",1;")
+            sendString(accepted_socket, "BTNEVENT:" + key + ",1;");
         }
     };
 

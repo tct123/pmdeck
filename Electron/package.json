@@ -20,6 +20,7 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "dependencies": {
+    "@types/node": "^12.0.7",
     "material-design-icons-iconfont": "^4.0.3",
     "typeface-roboto": "0.0.54"
   },

@@ -18,7 +18,6 @@ if __name__ == "__main__":
     manager = manager.DeviceManager()
 
     def key_callback(deck, key, status):
-
         if status == "0":
             deck.current_folder.button_pressed(key)
         else:
@@ -74,3 +73,4 @@ if __name__ == "__main__":
             quit_button)))
 
     tray_app.run()
+

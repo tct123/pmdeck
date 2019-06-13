@@ -32,6 +32,7 @@ var app = {
         console.log("device really ready");
 
         var paired = true;
+        var paired_device_id = "";
         var pass = 123456;
 
         //Setup Buttons
@@ -132,9 +133,13 @@ var app = {
                         'foo' : 'bar'
                     } */
 
-                
-                    
-
+                    console.log(device.uuid);
+                    if (service.txtRecord.uid == paired_device_id) {
+                        connect(service.ipv4Addresses[0], service.port, function (socket) {
+                            sendString(socket, "CONN:" + device.uuid + ";");
+                            accepted_socket = socket;
+                        });
+                    }
 
                 } else {
                     console.log('service removed'+ service);
@@ -143,24 +148,133 @@ var app = {
         }
     },
 
-    onPause: function() {
-        console.log("Paused");
+    openSockets: [],
+
+    connect: function (ip, port, onSuccess) {
+        var socket = new Socket();
+        socket.onData = function (data) {
+            onData(socket, data);
+        };
+        socket.onError = function (errorMessage) {
+            console.log("ERROR: " + errorMessage);
+        };
+        socket.onClose = function (hasError) {
+            console.log("CLOSE: " + hasError);
+        };
+        socket.open(
+            ip,
+            port,
+            function () {
+                onSuccess(socket)
+            },
+            function (errorMessage) {
+                console.log(errorMessage);
+            }
+        );
     },
 
-    onResume: function() {
-        console.log("resumed");
+    sendString: function (socket, str) {
+        var data = new Uint8Array(str.length);
+        for (var i = 0; i < data.length; i++) {
+            data[i] = str.charCodeAt(i);
+        }
+        socket.write(data);
     },
 
-    onKeyPressed: function(key) {
-        console.log("Key Pressed " + key);
+    leftover: "",
 
-    },
+    accepted_socket: null,
 
-    onKeyReleased: function(key) {
-        console.log("Key Released " + key);
-
+    onData: function (socket, data) {
+        var stream = leftover + (new TextDecoder("utf-8").decode(data));
+        console.log(leftover);
+        console.log(stream);
+        var indexStart = 0;
+        var found = false;
+        for (var i = 0; i < stream.length; i++) {
+            if (stream[i] === ";") {
+                found = true;
+                var msg = stream.substring(indexStart, i);
+                indexStart = i + 1;
+                console.log(msg);
+                var spl = msg.split(":");
+                var cmd = spl[0];
+                switch (cmd) {
+                    case "IMAGE":
+                        if (paired) {
+                            var args = spl[1].split(",");
+                            var btn = buttons[args[0]];
+                            var url = "url('data:image/png;base64," + args[1] + "')";
+                            console.log(url);
+                            //btn.style.backgroundImage = "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')";
+                            //btn.css("background-image", "url('" + url.replace(/(\r\n|\n|\r)/gm, "") + "')");
+                            //btn.css("background-image", url);
+                            //btn.style.backgroundImage = url;
+                            btn.style.backgroundImage = url;
+                        }
+                        break;
+                    case "CONN":
+                        var args = spl[1].split(",")
+                        //upgrade this connection to accepted one
+                        accepted_socket = socket;
+                        zeroconf.close();
+                        sendString(socket, "CONNACCEPT;");
+                    default:
+                        break;
+                }
+            }
+        }
+        if (found) {
+            leftover = stream.substring(indexStart, stream.length);
+        } else {
+            leftover = stream;
+        }
     }
 
+    setupButtons: function () {
+        var heightPercent = 100 / grid_y;
+        var widthPercent = 100 / grid_x;
+        var buttonCount = grid_x * grid_y;
+
+        var buttonContainer = document.getElementById("buttonContainer");
+        buttonContainer.innerHTML = "";
+        buttons = [];
+        for (let i = 0; i < buttonCount; i++) {
+            var btn = document.createElement("BUTTON");
+            btn.classList.add("button-wrapper");
+            btn.classList.add("button");
+            btn.style.width = widthPercent + "%";
+            btn.style.height = heightPercent + "%";
+            btn.addEventListener("touchstart", onKeyPressed.bind(this, i), false);
+            btn.addEventListener("touchend", onKeyReleased.bind(this, i), false);
+            buttons.push(btn);
+            buttonContainer.appendChild(btn);
+        }
+    },
+
+    onPause: function () {
+        // TODO: This application has been suspended. Save application state here.
+    },
+
+    onResume: function () {
+        // TODO: This application has been reactivated. Restore application state here.
+    },
+
+    onKeyPressed: function (key) {
+        console.log("Pressed Key " + key);
+        //buttons[key].style.backgroundColor = "red";
+        if (accepted_socket != null) {
+            sendString(accepted_socket, "BTNEVENT:" + key + ",0;");
+        }
+    },
+
+    onKeyReleased: function (key) {
+        console.log("Released Key " + key);
+        //buttons[key].style.backgroundColor = "blue";
+        if (accepted_socket != null) {
+            sendString(accepted_socket, "BTNEVENT:" + key + ",1;");
+        }
+    }
 
 
 };

@@ -10,7 +10,7 @@ from Util.get_uid import get_uid
 
 class Deck:
 
-    def __init__(self, client_socket: socket.socket):
+    def __init__(self, client_socket: socket.socket, device_manager):
 
         self.id = None
         self.key_callback = None
@@ -19,6 +19,7 @@ class Deck:
         self.key_count_x = 3
         self.key_count_y = 2
         self.read_thread: threading.Thread = None
+        self.device_manager = device_manager
 
         return
 

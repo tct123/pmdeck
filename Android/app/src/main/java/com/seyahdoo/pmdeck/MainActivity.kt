@@ -6,6 +6,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
+import android.os.Debug
+import android.support.design.widget.Snackbar
 import android.support.v7.app.AppCompatActivity
 import android.util.Base64
 import android.util.Log
@@ -136,6 +138,7 @@ class MainActivity : AppCompatActivity() {
                             val args = spl[1].split(",")
                             syncPass = args[1]
                             syncTrying = true
+
                             //Open Sync UI
                             CafeBar.builder(this)
                                 .theme(CafeBarTheme.LIGHT)
@@ -175,6 +178,8 @@ class MainActivity : AppCompatActivity() {
                                     it.dismiss()
                                 }
                                 .show()
+
+
                         }catch (e:Exception){
                             e.printStackTrace()
                             Log.e("Network Listener","Closing Connection, Stuff Happened")
@@ -195,7 +200,7 @@ class MainActivity : AppCompatActivity() {
 
                     if (d == null) d = NetworkDiscovery(this@MainActivity)
                     else d?.reset()
-                    d?.findServers("_pmdeck._tcp.local."){ it ->
+                    d?.findServers("_pmdeckdiscovery._tcp.local."){ it ->
                         Log.e("Main", "Found a server, connectiong. ${it.inet4Addresses[0]} : ${it.port}")
                         Connection(it.inetAddresses[0],it.port, controlListener){ con ->
                             if(synced){

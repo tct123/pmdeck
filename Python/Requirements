@@ -4,5 +4,6 @@ netifaces
 python-baseconv
 watchdog
 zerorpc
+pywin32
 
 livejson
