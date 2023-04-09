@@ -11,55 +11,55 @@
             <div class="button-container" id="buttonContainer"></div>
         </div>
         <script type="text/javascript" src="cordova.js"></script>
-        <!-- <script type="text/javascript" src="socket.js"></script> -->
-        <!-- <script src="js/jquery-3.3.1.min.js"></script> -->
-        <!-- <script src="js/encoding.js"></script> -->
-        <!-- <script src="js/semaphore.js"></script> -->
+        <script type="text/javascript" src="socket.js"></script>
+        <script src="js/jquery-3.3.1.min.js"></script>
+        <script src="js/encoding.js"></script>
+        <script src="js/semaphore.js"></script>
         <script src="js/index.js"></script>
         <script>
                     
             
-            // var sending = false;
+            var sending = false;
 
-            // var onPressedEvent = function(key) {
-            //     if (socket.state == Socket.State.OPENED) {
-            //         var dataString = key +","+ 0 +";";
-            //         var data = new Uint8Array(dataString.length);
-            //         for (var i = 0; i < data.length; i++) {
-            //             data[i] = dataString.charCodeAt(i);
-            //         }
-            //         socket.write(data);
-            //     }
-            // };
+            var onPressedEvent = function(key) {
+                if (socket.state == Socket.State.OPENED) {
+                    var dataString = key +","+ 0 +";";
+                    var data = new Uint8Array(dataString.length);
+                    for (var i = 0; i < data.length; i++) {
+                        data[i] = dataString.charCodeAt(i);
+                    }
+                    socket.write(data);
+                }
+            };
             
-            // var onReleasedEvent = function(key) {
-            //     if (socket.state == Socket.State.OPENED) {
-            //         var dataString = key +","+ 1 +";";
-            //         var data = new Uint8Array(dataString.length);
-            //         for (var i = 0; i < data.length; i++) {
-            //             data[i] = dataString.charCodeAt(i);
-            //         }
-            //         socket.write(data);
-            //     }
-            // };
+            var onReleasedEvent = function(key) {
+                if (socket.state == Socket.State.OPENED) {
+                    var dataString = key +","+ 1 +";";
+                    var data = new Uint8Array(dataString.length);
+                    for (var i = 0; i < data.length; i++) {
+                        data[i] = dataString.charCodeAt(i);
+                    }
+                    socket.write(data);
+                }
+            };
             
-            // // var socket = null;
+            var socket = null;
             
-            // // var current_reading_string = "";
-            // // var current_key = 0;
-            // // var stream = "";
+            var current_reading_string = "";
+            var current_key = 0;
+            var stream = "";
 
-            // var onDeviceReady = function() {
+            var onDeviceReady = function() {
 
             
 
 
                 
-            // };
+            };
             
             //https://github.com/kapetan/cordova-plugin-android-wifi-manager
 
-            // document.addEventListener('deviceready', onDeviceReady);
+            document.addEventListener('deviceready', onDeviceReady);
         </script>
 
     </body>
