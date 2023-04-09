@@ -27,7 +27,11 @@
             "cordova-plugin-qrscanner": {}
         },
         "platforms": [
-            "android"
+            "android",
+            "electron"
         ]
+    },
+    "devDependencies": {
+        "cordova-electron": "^3.1.0"
     }
 }
